@@ -121,6 +121,7 @@ const SPOOLS = [                                                   // tool -> si
   { side: "right", y: 336, z: 440 }, { side: "right", y: 90, z: 426 },
 ];
 const COVER_ENTRY = { left: [400, 125, 232], right: [-345, 125, 232] };     // top of each X side cover
+const COVER_BOTTOM = 27;                                          // underside of the side covers
 const HOLDER_PTFE = [[307, 205, 365], [227, 205, 365], [-250, 205, 365], [-170, 205, 365]];
 const INLET = [189, 176], PLUG = [192, 210];                       // head top: PTFE inlet and cable plug (y, z)
 
@@ -261,13 +262,16 @@ function updateRuns() {
     if (r.key === key) return;
     r.key = key;
     const sp = SPOOLS[j], side = sp.side, s = side === "left" ? 1 : -1;
-    const [ex, ey, ez] = COVER_ENTRY[side], [hpx, hpy, hpz] = HOLDER_PTFE[j];
+    const [ex, ey, ez0] = COVER_ENTRY[side], [hpx, hpy, hpz] = HOLDER_PTFE[j];
+    const ez = ez0 + (j % 2 ? 7 : -7);                             // two tubes per cover, side by side
     const xs = SPOOL_X[side], feed = v3(xs, sp.y > 200 ? sp.y - 90 : sp.y + 92, sp.z - 45);
     const mid = (hx + ex) / 2;
     const ptfe = [
       v3(hx, INLET[0] + z, INLET[1]), v3(hx, INLET[0] + 45 + z, INLET[1] + 4),
-      v3(mid, INLET[0] + 75 + z, 205), v3(ex - s * 10, ey + 40 + z, ez - 4), v3(ex, ey + z, ez),
-      v3(ex + s * 25, ey + 60 + z, ez + 50), v3(hpx, hpy - 25, hpz - 30), v3(hpx, hpy, hpz), feed,
+      v3(mid, INLET[0] + 75 + z, 205), v3(ex, ey + 45 + z, ez), v3(ex, ey + z, ez),
+      // straight down through the side cover, out of its underside directly below the entry
+      v3(ex, ey - 50 + z, ez), v3(ex, COVER_BOTTOM + z, ez), v3(ex, COVER_BOTTOM - 25 + z, ez + 8),
+      v3(ex + s * 15, COVER_BOTTOM - 30 + z, ez + 60), v3(hpx, hpy - 70, hpz - 25), v3(hpx, hpy - 25, hpz), v3(hpx, hpy, hpz), feed,
     ];
     tube(r.ptfe, ptfe, 2.0); tube(r.fil, ptfe, 0.9);
     const cable = [
