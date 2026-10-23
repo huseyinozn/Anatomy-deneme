@@ -467,7 +467,7 @@ function setActive(j) {
 // ---------- views ----------
 // ---------- the hobby room: a standard IKEA desk and a few things for scale ----------
 // LINNMON 150 x 75 cm tabletop on ADILS legs, 74 cm high. Everything else is a stand-in for scale.
-const DESK = { w: 1.5, d: 0.75, t: 0.025, h: 0.74 };
+const DESK = { w: 1.5, d: 0.75, t: 0.025, h: 0.74, shift: -0.06 };   // shift: desk centre relative to the printer (-x = towards the laptop side)
 const roomGroup = new THREE.Group();
 let roomCenter = new THREE.Vector3();
 function mat(color, roughness = 0.6, metalness = 0) { return new THREE.MeshStandardMaterial({ color, roughness, metalness }); }
@@ -498,7 +498,7 @@ function addRoom() {
   const all = visibleBox(scene), bed = visibleBox(bedGroup);
   const travel = 0.3;
   const fp = { x0: all.min.x, x1: all.max.x, z0: Math.min(all.min.z, bed.min.z - travel), z1: Math.max(all.max.z, bed.max.z) };
-  const top = all.min.y, floor = top - DESK.h, cx = (fp.x0 + fp.x1) / 2, cz = (fp.z0 + fp.z1) / 2;
+  const top = all.min.y, floor = top - DESK.h, cx = (fp.x0 + fp.x1) / 2 + DESK.shift, cz = (fp.z0 + fp.z1) / 2;
   const dk = { x0: cx - DESK.w / 2, x1: cx + DESK.w / 2, z0: cz - DESK.d / 2, z1: cz + DESK.d / 2 };
   roomCenter.set(cx, top + 0.1, cz);
   // desk
