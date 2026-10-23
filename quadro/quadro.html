@@ -1,0 +1,1205 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Quadro mekanizması</title><style>
+.iso{
+  --anatomy-page:#0b0b0b;--anatomy-card:#131313;--anatomy-text:#a3a3a3;--anatomy-strong:#e6e6e6;--anatomy-muted:#6e6e6e;
+  --anatomy-paper:#131313;--anatomy-face:#1b1b1b;--anatomy-top:#1c1c1c;
+  --anatomy-shade-0:#0f0f0f;--anatomy-shade-1:#121212;--anatomy-shade-2:#151515;--anatomy-shade-3:#181818;
+  --anatomy-lit-top:#262626;--anatomy-lit-shade:#1d1d1d;
+  --anatomy-hi:#d4d4d4;--anatomy-mid:#6a6a6a;--anatomy-lo:#3e3e3e;--anatomy-faint:#2a2a2a;--anatomy-lit:#ffffff;
+  --anatomy-halo:#050505;--anatomy-halo-opacity:.9;--anatomy-dot:#e6e6e6;
+  --anatomy-red:#ff6b6b;--anatomy-green:#6be0a0;--anatomy-blue:#6b9bff;
+  --anatomy-weight:.6px;--anatomy-ease:cubic-bezier(.32,.72,0,1);
+  --anatomy-mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --anatomy-lift:inset 0 1px 0 0 #ffffff0a,inset 0 0 0 1px #ffffff06,0 0 0 1px #00000026,0 1px 1px -.5px #00000014,0 3px 3px -1.5px #00000014,0 6px 6px -3px #00000014,0 12px 12px -6px #00000014;
+}
+.iso[data-theme="light"]{
+  --anatomy-page:#f2f2ef;--anatomy-card:#fbfbfa;--anatomy-text:#57575a;--anatomy-strong:#18181a;--anatomy-muted:#8c8c90;
+  --anatomy-paper:#fbfbfa;--anatomy-face:#ffffff;--anatomy-top:#ffffff;
+  --anatomy-shade-0:#dcdcd9;--anatomy-shade-1:#e5e5e2;--anatomy-shade-2:#ededea;--anatomy-shade-3:#f4f4f1;
+  --anatomy-lit-top:#ffffff;--anatomy-lit-shade:#eeeeeb;
+  --anatomy-hi:#26262a;--anatomy-mid:#8a8a8f;--anatomy-lo:#b4b4b8;--anatomy-faint:#d4d4d6;--anatomy-lit:#000000;
+  --anatomy-halo:#8a8a80;--anatomy-halo-opacity:.32;--anatomy-dot:#3a3a3e;
+  --anatomy-red:#e5484d;--anatomy-green:#30a46c;--anatomy-blue:#3e63dd;
+  --anatomy-lift:inset 0 1px 0 0 #ffffff,0 0 0 1px #0000000f,0 1px 1px -.5px #0000000a,0 3px 3px -1.5px #0000000a,0 6px 6px -3px #0000000a,0 12px 12px -6px #0000000a;
+}
+.iso-svg{display:block;width:100%;height:auto;overflow:visible}
+.iso-svg path,.iso-svg circle{vector-effect:non-scaling-stroke}
+.iso-fill{fill:var(--anatomy-paper);stroke:none}
+.iso-solid[data-lit]>.iso-fill{fill:var(--anatomy-face)}
+.iso-shade,.iso-top{stroke:none}
+.iso-shade[data-shade="0"]{fill:var(--anatomy-shade-0)}
+.iso-shade[data-shade="1"]{fill:var(--anatomy-shade-1)}
+.iso-shade[data-shade="2"]{fill:var(--anatomy-shade-2)}
+.iso-shade[data-shade="3"]{fill:var(--anatomy-shade-3)}
+.iso-top{fill:var(--anatomy-top)}
+.iso-solid[data-lit]>.iso-top{fill:var(--anatomy-lit-top)}
+.iso-solid[data-lit]>.iso-shade{fill:var(--anatomy-lit-shade)}
+.iso-solid[data-seamless]>.iso-shade,.iso-solid[data-seamless]>.iso-top{stroke-width:.4;stroke-linejoin:round}
+.iso-solid[data-seamless]>.iso-shade[data-shade="0"]{stroke:var(--anatomy-shade-0)}
+.iso-solid[data-seamless]>.iso-shade[data-shade="1"]{stroke:var(--anatomy-shade-1)}
+.iso-solid[data-seamless]>.iso-shade[data-shade="2"]{stroke:var(--anatomy-shade-2)}
+.iso-solid[data-seamless]>.iso-shade[data-shade="3"]{stroke:var(--anatomy-shade-3)}
+.iso-solid[data-seamless]>.iso-top{stroke:var(--anatomy-top)}
+.iso-solid[data-seamless][data-lit]>.iso-top{stroke:var(--anatomy-lit-top)}
+.iso-solid[data-seamless][data-lit]>.iso-shade{stroke:var(--anatomy-lit-shade)}
+.iso-solid[data-lit]>.iso-edge{stroke:var(--anatomy-lit)}
+.iso-halo{fill:var(--anatomy-halo);stroke:none;filter:blur(9px);opacity:var(--anatomy-halo-opacity);transform:translateY(3px)}
+.iso-line{fill:none;stroke:var(--anatomy-lo);stroke-width:var(--anatomy-weight);stroke-linecap:round;stroke-linejoin:round}
+.iso-line[data-tone="hi"]{stroke:var(--anatomy-hi)}
+.iso-line[data-tone="mid"]{stroke:var(--anatomy-mid)}
+.iso-line[data-tone="lo"]{stroke:var(--anatomy-lo)}
+.iso-line[data-tone="faint"]{stroke:var(--anatomy-faint)}
+.iso-line[data-tone="lit"]{stroke:var(--anatomy-lit)}
+.iso-line[data-tone="red"]{stroke:var(--anatomy-red)}
+.iso-line[data-tone="green"]{stroke:var(--anatomy-green)}
+.iso-line[data-tone="blue"]{stroke:var(--anatomy-blue)}
+.iso-line[data-dotted]{stroke-dasharray:.01 3.5;stroke-width:1}
+.iso-line[data-dashed]{stroke-dasharray:3 3}
+.iso-line[data-flow]{stroke-dasharray:2 6}
+.iso-wire-end{fill:var(--anatomy-paper);stroke:var(--anatomy-lo);stroke-width:var(--anatomy-weight)}
+.iso-wire[data-tone="hi"] .iso-wire-end{stroke:var(--anatomy-hi)}
+.iso-wire[data-tone="mid"] .iso-wire-end{stroke:var(--anatomy-mid)}
+.iso-wire[data-tone="faint"] .iso-wire-end{stroke:var(--anatomy-faint)}
+.iso-wire[data-tone="lit"] .iso-wire-end{stroke:var(--anatomy-lit)}
+.iso-dots circle{fill:var(--anatomy-dot);stroke:none;opacity:.32}
+.iso-dots[data-tone="hi"] circle{opacity:.85}
+.iso-dots[data-tone="mid"] circle{opacity:.45}
+.iso-dots[data-tone="lo"] circle{opacity:.22}
+.iso-dots[data-tone="faint"] circle{opacity:.12}
+.iso-face-text{fill:var(--anatomy-mid);font-family:var(--anatomy-mono);letter-spacing:.04em}
+.iso-face-text[data-tone="hi"]{fill:var(--anatomy-hi)}
+.iso-face-text[data-tone="lo"]{fill:var(--anatomy-lo)}
+.iso-face-text[data-tone="faint"]{fill:var(--anatomy-faint)}
+.tb-body{fill:var(--anatomy-shade-2);stroke:none}
+.tb-shine{fill:var(--anatomy-top);stroke:none}
+.tb-shade{fill:var(--anatomy-shade-0);stroke:none}
+.tb-ring{fill:none;stroke:var(--anatomy-lo);stroke-width:.45;stroke-linecap:butt;stroke-linejoin:round}
+.tb-ring[data-tone="mid"]{stroke:var(--anatomy-mid)}
+.tb-ring[data-tone="faint"]{stroke:var(--anatomy-faint)}
+.tb-ring[data-tone="hi"]{stroke:var(--anatomy-hi)}
+@keyframes iso-flow{to{stroke-dashoffset:-32}}
+@keyframes iso-pulse{0%,100%{opacity:.18}12%{opacity:1}40%{opacity:.18}}
+.iso-line[data-flow]{animation:iso-flow 1600ms linear infinite}
+.iso-dots circle[data-pulse]{animation:iso-pulse 1600ms steps(1,end) infinite;animation-delay:var(--pulse-at,0ms)}
+.iso-figure{margin:32px 0 36px}
+.iso-plate{position:relative;padding:52px 24px;border-radius:0;background:var(--anatomy-card);box-shadow:0 0 0 1px var(--anatomy-mid);--anatomy-paper:var(--anatomy-card)}
+.iso-plate-corners{position:absolute;inset:18px 20px;pointer-events:none}
+.iso-plate-corner{position:absolute;color:var(--anatomy-muted);font-family:var(--anatomy-mono);font-size:10.5px;line-height:1;letter-spacing:.04em;white-space:nowrap}
+.iso-plate-corner[data-corner="fig"]{top:0;left:0;color:var(--anatomy-text)}
+.iso-plate-corner[data-corner="title"]{top:0;right:0;text-transform:uppercase;letter-spacing:.1em}
+.iso-plate-corner[data-corner="hint"]{bottom:0;left:0;text-transform:uppercase;letter-spacing:.1em}
+.iso-plate-corner[data-corner="readout"]{right:0;bottom:0;color:var(--anatomy-text);font-variant-numeric:tabular-nums}
+.iso-plate .iso-svg{margin:0 auto}
+.iso-legend{display:grid;gap:8px;margin-top:12px;color:var(--anatomy-muted);font-size:13px;line-height:1.55}
+.iso-keys{display:flex;flex-wrap:wrap;gap:6px 18px}
+.iso-key{display:inline-flex;align-items:center;gap:7px}
+.iso-swatch{width:16px;height:10px;flex:none;overflow:visible}
+.iso-swatch path{fill:none;stroke:var(--anatomy-hi);stroke-width:1;vector-effect:non-scaling-stroke;stroke-linejoin:round;stroke-linecap:round}
+.iso-swatch[data-mark="raised"] path,.iso-swatch[data-mark="flat"] path{stroke:var(--anatomy-mid)}
+.iso-swatch[data-mark="lit"] path{stroke:var(--anatomy-lit)}
+.iso-swatch[data-mark="dim"] path{stroke:var(--anatomy-lo)}
+.iso-swatch[data-mark="dotted"] path{stroke-dasharray:.01 3;stroke-width:1.4}
+.iso-swatch[data-mark="dashed"] path{stroke-dasharray:3 2.5}
+.iso-swatch[data-mark="red"] path{stroke:var(--anatomy-red)}
+.iso-swatch[data-mark="green"] path{stroke:var(--anatomy-green)}
+.iso-swatch[data-mark="blue"] path{stroke:var(--anatomy-blue)}
+.iso-swatch-crease{stroke:var(--anatomy-lo)!important}
+@media (max-width:560px){.iso-plate{padding:48px 12px 70px}.iso-plate-corner[data-corner="hint"]{bottom:18px}}
+@media (prefers-reduced-motion:reduce){.iso-line[data-flow],.iso-dots circle[data-pulse]{animation:none}}
+
+*{box-sizing:border-box}
+html{color-scheme:dark}
+body[data-theme="light"]{color-scheme:light}
+body{margin:0;background:var(--anatomy-page);color:var(--anatomy-text);font:14px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+.iso-page{width:min(900px,100% - 32px);margin:64px auto 96px}
+</style></head><body class="iso" data-theme="dark"><main class="iso-page"><style>
+.iso-stage{touch-action:pan-y;cursor:grab;user-select:none;-webkit-user-select:none}
+.iso-stage:active{cursor:grabbing}
+.q-trail{fill:none;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+.q-c0 .iso-top{fill:#e5484d}.q-c1 .iso-top{fill:#f5a524}.q-c2 .iso-top{fill:#30a46c}.q-c3 .iso-top{fill:#3e63dd}
+.q-panel{margin-top:16px;display:grid;gap:12px;font-size:14px}
+.q-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.q-label{color:var(--anatomy-muted);margin:0 4px 0 8px}
+.q-panel button{font:inherit;color:var(--anatomy-strong);background:var(--anatomy-card);border:1px solid var(--anatomy-faint);border-radius:8px;padding:8px 14px;min-height:40px;cursor:pointer}
+.q-panel button:active{transform:translateY(1px)}
+.q-panel button[data-play]{min-width:96px;font-weight:600}
+.q-status{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.q-head{display:grid;grid-template-columns:auto 1fr;gap:2px 8px;align-items:center;padding:8px 10px;border:1px solid var(--anatomy-faint);border-radius:8px;background:var(--anatomy-card)}
+.q-head.is-active{border-color:var(--anatomy-mid)}
+.q-head i{width:10px;height:10px;border-radius:50%}
+.q-head span,.q-head em{grid-column:2;font-style:normal;color:var(--anatomy-text);font-family:var(--anatomy-mono);font-size:12px}
+.q-head b{color:var(--anatomy-strong)}
+.q-change{margin:0;color:var(--anatomy-text);font-size:13px;min-height:2.6em}
+.q-change b{color:var(--anatomy-strong);font-weight:600}
+.q-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 20px}
+.q-grid label{display:grid;grid-template-columns:1fr auto;gap:4px;color:var(--anatomy-text);font-size:13px}
+.q-grid output{font-family:var(--anatomy-mono);color:var(--anatomy-strong)}
+.q-grid input{grid-column:1 / -1;width:100%;accent-color:var(--anatomy-hi)}
+@media (max-width:600px){.q-status{grid-template-columns:repeat(2,minmax(0,1fr))}.q-grid{grid-template-columns:1fr}}
+</style><figure class="iso-figure"><div class="iso-plate"><div class="iso-plate-corners" aria-hidden="true"><span class="iso-plate-corner" data-corner="fig">Şekil 1</span><span class="iso-plate-corner" data-corner="title">Quadro · 4 kafa, tek X ekseni</span><span class="iso-plate-corner" data-corner="hint">Sürükle: açıyı çevir</span><span class="iso-plate-corner" data-corner="readout" data-readout>hazır</span></div><div class="iso-stage" tabindex="0" role="img" aria-label="Quadro mekanizması"><svg xmlns="http://www.w3.org/2000/svg" class="iso-svg" viewBox="0 0 900 560" role="img" aria-label="Quadro 3D yazıcı: tek bir X rayı üzerinde bağımsız hareket eden dört takım kafası, Y yönünde hareket eden ortak bir köprü ve 300 × 300 mm baskı tablası. Aktif kafa baskı yaparken diğerleri sol ve sağdaki park konumlarında bekler; takım değişiminde tüm kafalar aynı anda başlayıp aynı anda durur."><g data-layer="back"></g><g data-layer="trails"></g><g data-layer="gantry"></g></svg></div></div><figcaption class="iso-legend"><span class="iso-keys"><span class="iso-key"><svg class="iso-swatch" data-mark="lit" viewBox="0 0 16 10" aria-hidden="true"><path d="M2 4.5 8 1.5 14 4.5 14 6 8 9 2 6Z"/><path class="iso-swatch-crease" d="M2 4.5 8 7.5 14 4.5"/></svg>Aktif kafa ve nozulu</span><span class="iso-key"><svg class="iso-swatch" data-mark="raised" viewBox="0 0 16 10" aria-hidden="true"><path d="M2 4.5 8 1.5 14 4.5 14 6 8 9 2 6Z"/><path class="iso-swatch-crease" d="M2 4.5 8 7.5 14 4.5"/></svg>Park konumları: kirişin üstünde L1–L3 ve R1–R3</span></span><span class="iso-caption">Kafalar 1→4 sırasıyla aynı rayda durur ve birbirini geçemez: T(k) basarken soldakiler L park yuvalarına, sağdakiler R yuvalarına çekilir. Takım değişiminde her eksen (4 kafa ve Y köprüsü) aynı ölçeklenmiş trapez profilini kullanır, bu yüzden hepsi aynı anda başlar ve aynı anda durur. İki kafa arasındaki boşluk başlangıç ve bitiş değerleri arasında doğrusal değiştiği için hareket sırasında kafalar çarpışmaz. Hız ve ivme sınırları varsayımdır; gerçek Quadro algoritması değildir. Tahrik (kayış/motor) ve Z ekseni modellenmedi.</span></figcaption></figure>
+<div class="q-panel">
+  <div class="q-row">
+    <button data-play aria-pressed="true">Durdur</button>
+    <span class="q-label">Sıradaki kafa</span>
+    <button data-pick="0">T1</button><button data-pick="1">T2</button><button data-pick="2">T3</button><button data-pick="3">T4</button>
+    <button data-clear>İzleri sil</button>
+    <button data-theme-toggle>Açık tema</button>
+  </div>
+  <div class="q-status" data-status></div>
+  <p class="q-change" data-change>Takım değişimi bekleniyor…</p>
+  <div class="q-row">
+    <span class="q-label">Görünüm</span>
+    <button data-view="42,30">İzometrik</button><button data-view="65,22">Önden</button><button data-view="28,24">Yandan</button><button data-view="45,50">Yukarıdan</button>
+  </div>
+  <div class="q-grid">
+    <label>Animasyon hızı <output></output><input type="range" data-cfg="scale" min="0.05" max="1" step="0.05"></label>
+    <label>Baskı hızı (mm/s) <output></output><input type="range" data-cfg="print" min="30" max="400" step="10"></label>
+    <label>X maks. hız (mm/s) <output></output><input type="range" data-cfg="vx" min="100" max="1500" step="50"></label>
+    <label>X ivme (mm/s²) <output></output><input type="range" data-cfg="ax" min="500" max="20000" step="500"></label>
+    <label>Y maks. hız (mm/s) <output></output><input type="range" data-cfg="vy" min="100" max="1500" step="50"></label>
+    <label>Y ivme (mm/s²) <output></output><input type="range" data-cfg="ay" min="500" max="20000" step="500"></label>
+    <label>Yatay açı (°) <output></output><input type="range" data-cfg="az" min="25" max="70" step="1"></label>
+    <label>Yükseklik açısı (°) <output></output><input type="range" data-cfg="el" min="18" max="50" step="1"></label>
+  </div>
+</div></main><script type="module">const AZIMUTH = 45;
+const ELEVATION = 30;
+const SHADES = 4;
+const RADIANS = Math.PI / 180;
+const UNIT = Math.sqrt(1.6);
+function cameraOf({ scale, azimuth = AZIMUTH, elevation = ELEVATION }) {
+    const a = azimuth * RADIANS;
+    const e = elevation * RADIANS;
+    return { sinA: Math.sin(a), cosA: Math.cos(a), sinE: Math.sin(e), cosE: Math.cos(e), k: scale * UNIT };
+}
+function iso([x, y, z], projection) {
+    const { origin } = projection;
+    const { sinA, cosA, sinE, cosE, k } = cameraOf(projection);
+    return [origin[0] + (x * sinA - y * cosA) * k, origin[1] + ((x * cosA + y * sinA) * sinE - z * cosE) * k];
+}
+function towardViewer(projection) {
+    const { sinA, cosA } = cameraOf(projection);
+    return [cosA, sinA];
+}
+function depthOf([x, y, z], projection) {
+    const { sinA, cosA, sinE, cosE } = cameraOf(projection);
+    return (x * cosA + y * sinA) * cosE + z * sinE;
+}
+const tenth = (value) => {
+    const text = (Math.round(value * 10) / 10).toFixed(1).replace(/\.0$/, "");
+    return text === "-0" ? "0" : text;
+};
+function pathOf(points, closed = false) {
+    if (!points.length)
+        return "";
+    return points.map(([x, y], at) => `${at ? "L" : "M"}${tenth(x)} ${tenth(y)}`).join("") + (closed ? "Z" : "");
+}
+const joinPaths = (paths) => paths.filter(Boolean).join("");
+function roundedPlan({ x, y, w, d, r }, steps = 8) {
+    const radius = Math.max(0, Math.min(r, w / 2, d / 2));
+    const corners = [
+        [x + w - radius, y + radius, -90],
+        [x + w - radius, y + d - radius, 0],
+        [x + radius, y + d - radius, 90],
+        [x + radius, y + radius, 180],
+    ];
+    const out = [];
+    for (const [cx, cy, start] of corners) {
+        const count = radius > 0 ? steps : 0;
+        for (let step = 0; step <= count; step++) {
+            const angle = (start + (count ? (90 * step) / count : 45)) * RADIANS;
+            out.push([cx + radius * Math.cos(angle), cy + radius * Math.sin(angle)]);
+        }
+    }
+    return out;
+}
+function signedArea(points) {
+    let area = 0;
+    for (let index = 0; index < points.length; index++) {
+        const [ax, ay] = points[index];
+        const [bx, by] = points[(index + 1) % points.length];
+        area += ax * by - bx * ay;
+    }
+    return area / 2;
+}
+const oriented = (points) => (signedArea(points) < 0 ? [...points].reverse() : points);
+function convexHull(points) {
+    const sorted = [...points].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    if (sorted.length < 3)
+        return sorted;
+    const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+    const lower = [];
+    for (const point of sorted) {
+        while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], point) <= 0)
+            lower.pop();
+        lower.push(point);
+    }
+    const upper = [];
+    for (let index = sorted.length - 1; index >= 0; index--) {
+        const point = sorted[index];
+        while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], point) <= 0)
+            upper.pop();
+        upper.push(point);
+    }
+    return [...lower.slice(0, -1), ...upper.slice(0, -1)];
+}
+function runsOf(flags, want) {
+    const count = flags.length;
+    const runs = [];
+    const start = flags.findIndex((flag, index) => flag !== flags[(index + count - 1) % count]);
+    if (start < 0)
+        return flags[0] === want ? [Array.from({ length: count + 1 }, (_, index) => index % count)] : [];
+    let run = null;
+    for (let step = 0; step < count; step++) {
+        const index = (start + step) % count;
+        if (flags[index] === want) {
+            if (!run)
+                run = [index];
+            run.push((index + 1) % count);
+        }
+        else if (run) {
+            runs.push(run);
+            run = null;
+        }
+    }
+    if (run)
+        runs.push(run);
+    return runs;
+}
+function extrude(ring, z, height, projection, options = {}) {
+    const convex = options.convex ?? true;
+    const count = ring.length;
+    const counter = signedArea(ring) > 0;
+    const [vx, vy] = towardViewer(projection);
+    const { sinA, cosA } = cameraOf(projection);
+    const normals = ring.map(([ax, ay], index) => {
+        const [bx, by] = ring[(index + 1) % count];
+        const dx = bx - ax;
+        const dy = by - ay;
+        const length = Math.hypot(dx, dy) || 1;
+        return (counter ? [dy / length, -dx / length] : [-dy / length, dx / length]);
+    });
+    const facing = normals.map(([nx, ny]) => nx * vx + ny * vy > 1e-9);
+    const top = ring.map(([x, y]) => iso([x, y, z + height], projection));
+    const bottom = ring.map(([x, y]) => iso([x, y, z], projection));
+    const outline = [];
+    const crease = [];
+    for (const run of runsOf(facing, false))
+        outline.push(pathOf(run.map((index) => top[index])));
+    for (const run of runsOf(facing, true)) {
+        crease.push(pathOf(run.map((index) => top[index])));
+        if (height > 0)
+            outline.push(pathOf(run.map((index) => bottom[index])));
+    }
+    if (height > 0) {
+        for (let index = 0; index < count; index++) {
+            if (facing[(index + count - 1) % count] !== facing[index])
+                outline.push(pathOf([top[index], bottom[index]]));
+        }
+    }
+    let fill;
+    if (convex) {
+        fill = pathOf(convexHull([...top, ...bottom]), true);
+    }
+    else {
+        const parts = [pathOf(oriented(top), true), pathOf(oriented(bottom), true)];
+        for (let index = 0; index < count; index++) {
+            if (!facing[index])
+                continue;
+            const next = (index + 1) % count;
+            parts.push(pathOf(oriented([top[index], top[next], bottom[next], bottom[index]]), true));
+        }
+        fill = parts.join("");
+    }
+    const buckets = Array.from({ length: SHADES }, () => []);
+    if (height > 0) {
+        const [lx, ly] = [-sinA, cosA];
+        for (let index = 0; index < count; index++) {
+            if (!facing[index])
+                continue;
+            const [nx, ny] = normals[index];
+            const lit = (nx * lx + ny * ly + 1) / 2;
+            const shade = Math.min(SHADES - 1, Math.max(0, Math.floor(lit * SHADES)));
+            const next = (index + 1) % count;
+            buckets[shade].push(pathOf(oriented([top[index], top[next], bottom[next], bottom[index]]), true));
+        }
+    }
+    let bevel;
+    if (options.bevel && options.bevel > 0) {
+        const by = options.bevel;
+        const inset = ring.map(([x, y], index) => {
+            const [ax, ay] = normals[(index + count - 1) % count];
+            const [bx, by2] = normals[index];
+            const mx = ax + bx;
+            const my = ay + by2;
+            const length = Math.hypot(mx, my) || 1;
+            return [x - (mx / length) * by, y - (my / length) * by];
+        });
+        const insetTop = inset.map(([x, y]) => iso([x, y, z + height], projection));
+        bevel = runsOf(facing, true)
+            .map((run) => pathOf([top[run[0]], ...run.slice(1, -1).map((index) => insetTop[index]), top[run[run.length - 1]]]))
+            .join("");
+    }
+    return {
+        fill,
+        outline: outline.join(""),
+        crease: crease.join(""),
+        top: pathOf(oriented(top), true),
+        shades: buckets.map((paths) => paths.join("")),
+        bevel,
+    };
+}
+const ringOf = (plan, steps = 8) => roundedPlan(plan, steps);
+function slabOf(plan, z, height, projection, steps = 8, bevel = 0) {
+    return extrude(ringOf(plan, steps), z, height, projection, { convex: true, bevel });
+}
+function circleRing(cx, cy, radius, steps = 40) {
+    return Array.from({ length: steps }, (_, step) => {
+        const angle = (step / steps) * Math.PI * 2;
+        return [cx + radius * Math.cos(angle), cy + radius * Math.sin(angle)];
+    });
+}
+function cylinder(cx, cy, radius, z, height, projection, steps = 32, bevel = 0) {
+    return extrude(circleRing(cx, cy, radius, steps), z, height, projection, { convex: true, bevel });
+}
+const insetPlan = ({ x, y, w, d, r }, by) => ({ x: x + by, y: y + by, w: w - by * 2, d: d - by * 2, r: Math.max(0, r - by) });
+function onTop(points, z, projection, closed = false) {
+    return pathOf(points.map(([x, y]) => iso([x, y, z], projection)), closed);
+}
+const planOutline = (plan, z, projection, steps = 8) => onTop(ringOf(plan, steps), z, projection, true);
+const lineOnTop = (from, to, z, projection) => onTop([from, to], z, projection);
+const segment = (from, to, projection) => pathOf([iso(from, projection), iso(to, projection)]);
+const rise = (at, from, to, projection) => segment([at[0], at[1], from], [at[0], at[1], to], projection);
+const ring = (cx, cy, radius, z, projection, steps = 40) => onTop(circleRing(cx, cy, radius, steps), z, projection, true);
+const pointsAt = (points, projection) => points.map((point) => iso(point, projection));
+function dotGrid(x, y, columns, rows, gap, z, projection) {
+    const dots = [];
+    for (let row = 0; row < rows; row++) {
+        for (let column = 0; column < columns; column++)
+            dots.push(iso([x + column * gap, y + row * gap, z], projection));
+    }
+    return dots;
+}
+function corners({ x, y, w, d }, inset = 0) {
+    return [
+        [x + inset, y + inset],
+        [x + w - inset, y + inset],
+        [x + inset, y + d - inset],
+        [x + w - inset, y + d - inset],
+    ];
+}
+function boxCorners({ x, y, w, d }, z0, z1) {
+    const out = [];
+    for (const px of [x, x + w])
+        for (const py of [y, y + d])
+            for (const z of [z0, z1])
+                out.push([px, py, z]);
+    return out;
+}
+function knurl(cx, cy, radius, z0, z1, count, projection, inset = 0.4) {
+    const [vx, vy] = towardViewer(projection);
+    const lines = [];
+    for (let index = 0; index < count; index++) {
+        const angle = (index / count) * Math.PI * 2;
+        const nx = Math.cos(angle);
+        const ny = Math.sin(angle);
+        if (nx * vx + ny * vy < 0.15)
+            continue;
+        lines.push(segment([cx + radius * nx, cy + radius * ny, z0 + inset], [cx + radius * nx, cy + radius * ny, z1 - inset], projection));
+    }
+    return lines.join("");
+}
+function sideArc(cx, cy, radius, z, projection, steps = 24) {
+    const [vx, vy] = towardViewer(projection);
+    const facing = Math.atan2(vy, vx);
+    const points = [];
+    for (let step = 0; step <= steps; step++) {
+        const angle = facing - Math.PI / 2 + (step / steps) * Math.PI;
+        points.push(iso([cx + radius * Math.cos(angle), cy + radius * Math.sin(angle), z], projection));
+    }
+    return pathOf(points);
+}
+function ringSeam(ring, z, projection) {
+    const count = ring.length;
+    const counter = signedArea(ring) > 0;
+    const [vx, vy] = towardViewer(projection);
+    const facing = ring.map(([ax, ay], index) => {
+        const [bx, by] = ring[(index + 1) % count];
+        const dx = bx - ax;
+        const dy = by - ay;
+        const [nx, ny] = counter ? [dy, -dx] : [-dy, dx];
+        return nx * vx + ny * vy > 1e-9;
+    });
+    return runsOf(facing, true).map((run) => pathOf(run.map((index) => iso([ring[index][0], ring[index][1], z], projection)))).join("");
+}
+const sideSeam = (plan, z, projection, steps = 8) => ringSeam(ringOf(plan, steps), z, projection);
+function sideRing(center, radius, axis, projection, steps = 20) {
+    const [px, py, pz] = center;
+    const points = [];
+    for (let step = 0; step < steps; step++) {
+        const angle = (step / steps) * Math.PI * 2;
+        const u = radius * Math.cos(angle);
+        const v = radius * Math.sin(angle);
+        points.push(iso(axis === "x" ? [px, py + u, pz + v] : [px + u, py, pz + v], projection));
+    }
+    return pathOf(points, true);
+}
+function coil(from, to, center, radius, turns, axis, projection, perTurn = 16) {
+    const count = Math.max(1, Math.round(turns * perTurn));
+    const back = [];
+    const front = [];
+    let run = [];
+    let near = null;
+    for (let index = 0; index <= count; index++) {
+        const share = index / count;
+        const angle = share * turns * Math.PI * 2;
+        const u = radius * Math.cos(angle);
+        const v = radius * Math.sin(angle);
+        const along = from + (to - from) * share;
+        const point = axis === "x" ? [along, center[0] + u, center[1] + v] : [center[0] + u, along, center[1] + v];
+        const normal = axis === "x" ? [0, Math.cos(angle), Math.sin(angle)] : [Math.cos(angle), 0, Math.sin(angle)];
+        const facing = depthOf(normal, projection) > 0;
+        const flat = iso(point, projection);
+        if (near === null)
+            near = facing;
+        if (facing !== near) {
+            run.push(flat);
+            (near ? front : back).push(pathOf(run));
+            run = [flat];
+            near = facing;
+            continue;
+        }
+        run.push(flat);
+    }
+    if (run.length > 1)
+        (near ? front : back).push(pathOf(run));
+    return { back: back.join(""), front: front.join("") };
+}
+function topTicks(from, to, step, every, edge, z, lengths, projection, axis = "x") {
+    const minor = [];
+    const major = [];
+    const first = Math.ceil(from / step) * step;
+    for (let at = first, index = Math.round(first / step); at <= to + 1e-9; at += step, index++) {
+        const big = index % every === 0;
+        const length = big ? lengths[1] : lengths[0];
+        const a = axis === "x" ? [at, edge] : [edge, at];
+        const b = axis === "x" ? [at, edge + length] : [edge + length, at];
+        (big ? major : minor).push(lineOnTop(a, b, z, projection));
+    }
+    return { minor: minor.join(""), major: major.join("") };
+}
+function sideTicks(from, to, step, every, face, top, lengths, projection, axis = "x") {
+    const minor = [];
+    const major = [];
+    const first = Math.ceil(from / step) * step;
+    for (let at = first, index = Math.round(first / step); at <= to + 1e-9; at += step, index++) {
+        const big = index % every === 0;
+        const length = big ? lengths[1] : lengths[0];
+        const a = axis === "x" ? [at, face, top] : [face, at, top];
+        const b = axis === "x" ? [at, face, top - length] : [face, at, top - length];
+        (big ? major : minor).push(segment(a, b, projection));
+    }
+    return { minor: minor.join(""), major: major.join("") };
+}
+function radialTicks(cx, cy, radius, count, every, z, lengths, projection, from = 0, span = Math.PI * 2) {
+    const minor = [];
+    const major = [];
+    const closed = Math.abs(span - Math.PI * 2) < 1e-9;
+    const steps = closed ? count : count + 1;
+    for (let index = 0; index < steps; index++) {
+        const angle = from + (index / count) * span;
+        const big = index % every === 0;
+        const inner = radius - (big ? lengths[1] : lengths[0]);
+        const sx = Math.sin(angle);
+        const sy = -Math.cos(angle);
+        (big ? major : minor).push(lineOnTop([cx + sx * inner, cy + sy * inner], [cx + sx * radius, cy + sy * radius], z, projection));
+    }
+    return { minor: minor.join(""), major: major.join("") };
+}
+const haloOf = (plan, z, height, projection) => slabOf(plan, z, height, projection).fill;
+function axisVector(projection, [dx, dy, dz]) {
+    const origin = iso([0, 0, 0], projection);
+    const moved = iso([dx, dy, dz], projection);
+    return [moved[0] - origin[0], moved[1] - origin[1]];
+}
+const fine = (value) => Math.round(value * 100) / 100;
+function translateAlong(projection, by) {
+    const [x, y] = axisVector(projection, by);
+    return `translate(${fine(x)} ${fine(y)})`;
+}
+const thousandth = (value) => Math.round(value * 1000) / 1000;
+function axesAt(at, z, projection) {
+    const origin = iso([at[0], at[1], z], projection);
+    const along = (point) => {
+        const [px, py] = iso(point, projection);
+        return [px - origin[0], py - origin[1]];
+    };
+    return { origin, x: along([at[0] + 1, at[1], z]), y: along([at[0], at[1] + 1, z]), z: along([at[0], at[1], z + 1]) };
+}
+const matrixOf = (u, v, origin) => `matrix(${thousandth(u[0])} ${thousandth(u[1])} ${thousandth(v[0])} ${thousandth(v[1])} ${thousandth(origin[0])} ${thousandth(origin[1])})`;
+function holdStill(element, [dx, dy]) {
+    const text = dx || dy ? `translate(${-dx} ${-dy})` : "";
+    element.querySelectorAll("[data-hold]").forEach((node) => (text ? node.setAttribute("transform", text) : node.removeAttribute("transform")));
+}
+function topMatrix(at, z, projection, along = "x") {
+    const { origin, x, y } = axesAt(at, z, projection);
+    return along === "x" ? matrixOf(x, y, origin) : matrixOf([-y[0], -y[1]], x, origin);
+}
+function sideMatrix(at, z, projection, face) {
+    const { origin, x, y, z: up } = axesAt(at, z, projection);
+    const down = [-up[0], -up[1]];
+    return face === "left" ? matrixOf(x, down, origin) : matrixOf([-y[0], -y[1]], down, origin);
+}
+function screenRise(height, projection) {
+    const { cosE, k } = cameraOf(projection);
+    return height * cosE * k;
+}
+function fitProjection(points, width, height, { pad = 24, headroom = 0, azimuth = AZIMUTH, elevation = ELEVATION } = {}) {
+    const unit = { origin: [0, 0], scale: 1, azimuth, elevation };
+    const flat = points.map((point) => iso(point, unit));
+    const xs = flat.map(([x]) => x);
+    const ys = flat.map(([, y]) => y);
+    const left = Math.min(...xs);
+    const right = Math.max(...xs);
+    const up = Math.min(...ys);
+    const down = Math.max(...ys);
+    const scale = Math.min((width - pad * 2) / (right - left), (height - pad * 2 - headroom) / (down - up));
+    return {
+        origin: [width / 2 - ((left + right) / 2) * scale, headroom + (height - headroom) / 2 - ((up + down) / 2) * scale],
+        scale,
+        azimuth,
+        elevation,
+    };
+}
+const escape = (text) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const attrs = (pairs) => Object.entries(pairs)
+    .filter(([, value]) => value !== undefined && value !== false)
+    .map(([key, value]) => ` ${key}="${escape(String(value))}"`)
+    .join("");
+function solidSvg(paths, { tone = "hi", crease = "faint", halo = false, lit = false, flat = false, className, inner = "" } = {}) {
+    const parts = [];
+    if (halo)
+        parts.push(`<path class="iso-halo" d="${paths.fill}"/>`);
+    parts.push(`<path class="iso-fill" d="${paths.fill}"/>`);
+    if (!flat) {
+        paths.shades.forEach((d, shade) => {
+            if (d)
+                parts.push(`<path class="iso-shade" data-shade="${shade}" d="${d}"/>`);
+        });
+        parts.push(`<path class="iso-top" d="${paths.top}"/>`);
+    }
+    if (crease !== "none" && paths.crease)
+        parts.push(`<path class="iso-line iso-crease" data-tone="${crease}" d="${paths.crease}"/>`);
+    if (crease !== "none" && paths.bevel)
+        parts.push(`<path class="iso-line iso-bevel" data-tone="${crease}" d="${paths.bevel}"/>`);
+    if (inner)
+        parts.push(inner);
+    parts.push(`<path class="iso-line iso-edge" data-tone="${tone}" d="${paths.outline}"/>`);
+    return `<g${attrs({ class: className ? `iso-solid ${className}` : "iso-solid", "data-lit": lit ? "" : undefined, "data-seamless": paths.seamless ? "" : undefined })}>${parts.join("")}</g>`;
+}
+function lineSvg(d, { tone = "lo", dotted = false, dashed = false, flow = false, className, free } = {}) {
+    if (!d)
+        return "";
+    return `<path${attrs({
+        class: className ? `iso-line ${className}` : "iso-line",
+        "data-tone": tone,
+        "data-free": free === true ? "" : free || undefined,
+        "data-dotted": dotted ? "" : undefined,
+        "data-dashed": dashed ? "" : undefined,
+        "data-flow": flow ? "" : undefined,
+        d,
+    })}/>`;
+}
+function dotsSvg(points, { size = 0.5, tone = "mid", pulse = false } = {}) {
+    const dots = points
+        .map(([x, y, alpha], index) => `<circle cx="${tenth(x)}" cy="${tenth(y)}" r="${size}"${alpha !== undefined && alpha < 1 ? ` fill-opacity="${Math.max(0, alpha).toFixed(2)}"` : ""}${pulse ? ` data-pulse="" style="--pulse-at:${(index * 137) % 1600}ms"` : ""}/>`)
+        .join("");
+    return `<g class="iso-dots" data-tone="${tone}">${dots}</g>`;
+}
+function fadedSvg(list, style = {}) {
+    const groups = new Map();
+    for (const entry of list) {
+        const [d, alpha] = Array.isArray(entry) ? entry : [entry.d, entry.alpha];
+        if (!d || !(alpha > 0.02))
+            continue;
+        const level = Math.min(1, Math.round(alpha * 20) / 20);
+        groups.set(level, (groups.get(level) ?? "") + d);
+    }
+    return [...groups].map(([alpha, d]) => (alpha >= 1 ? lineSvg(d, style) : `<g opacity="${alpha.toFixed(2)}">${lineSvg(d, style)}</g>`)).join("");
+}
+function fadeLineSvg(points, { fade = [0, 0], tone = "lo", className, stops = 6 } = {}) {
+    if (points.length < 2)
+        return "";
+    const ease = (t) => t * t * (3 - 2 * t);
+    const hashOf = (text) => {
+        let hash = 2166136261;
+        for (let index = 0; index < text.length; index++)
+            hash = Math.imul(hash ^ text.charCodeAt(index), 16777619);
+        return (hash >>> 0).toString(36);
+    };
+    const lengths = [0];
+    for (let index = 1; index < points.length; index++)
+        lengths.push(lengths[index - 1] + Math.hypot(points[index][0] - points[index - 1][0], points[index][1] - points[index - 1][1]));
+    const at = (length) => {
+        let index = 1;
+        while (index < points.length - 1 && lengths[index] < length)
+            index++;
+        const span = lengths[index] - lengths[index - 1] || 1;
+        const t = Math.max(0, Math.min(1, (length - lengths[index - 1]) / span));
+        return [points[index - 1][0] + (points[index][0] - points[index - 1][0]) * t, points[index - 1][1] + (points[index][1] - points[index - 1][1]) * t];
+    };
+    const pieceOf = (from, to) => [at(from), ...points.filter((_, index) => lengths[index] > from + 1e-6 && lengths[index] < to - 1e-6), at(to)];
+    const total = lengths[lengths.length - 1];
+    if (total < 1e-6)
+        return "";
+    let [start, end] = Array.isArray(fade) ? fade : [fade, fade];
+    if (start + end > total) {
+        const share = total / (start + end);
+        start *= share;
+        end *= share;
+    }
+    const paint = `var(--anatomy-${tone})`;
+    const ramp = (piece, rising) => {
+        const d = pathOf(piece);
+        const [x1, y1] = piece[0];
+        const [x2, y2] = piece[piece.length - 1];
+        const id = `iso-fade-${hashOf(`${d}|${tone}|${rising}`)}`;
+        const marks = Array.from({ length: stops + 1 }, (_, index) => {
+            const t = index / stops;
+            const alpha = ease(rising ? t : 1 - t);
+            return `<stop offset="${t.toFixed(3)}" stop-opacity="${alpha.toFixed(3)}" style="stop-color:${paint}"/>`;
+        }).join("");
+        const gradient = `<linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="${tenth(x1)}" y1="${tenth(y1)}" x2="${tenth(x2)}" y2="${tenth(y2)}">${marks}</linearGradient>`;
+        return `<defs>${gradient}</defs><path${attrs({ class: className ? `iso-line ${className}` : "iso-line", "data-tone": tone, "data-free": rising ? "start" : "end", d, style: `stroke:url(#${id})` })}/>`;
+    };
+    const parts = [];
+    if (start > 0.05)
+        parts.push(ramp(pieceOf(0, start), true));
+    if (total - end - start > 0.05)
+        parts.push(lineSvg(pathOf(pieceOf(start, total - end)), { tone, className }));
+    if (end > 0.05)
+        parts.push(ramp(pieceOf(total - end, total), false));
+    return `<g class="iso-fade">${parts.join("")}</g>`;
+}
+function wireSvg(from, to, { via = [], tone = "lo", dotted = false, dashed = false, flow = false, ends = "both", size = 1.2 } = {}) {
+    const d = pathOf([from, ...via, to]);
+    const end = ([x, y]) => `<circle class="iso-wire-end" cx="${tenth(x)}" cy="${tenth(y)}" r="${size}"/>`;
+    return `<g class="iso-wire" data-tone="${tone}">${lineSvg(d, { tone, dotted, dashed, flow })}${ends === "both" || ends === "from" ? end(from) : ""}${ends === "both" || ends === "to" ? end(to) : ""}</g>`;
+}
+function faceTextSvg(transform, text, { size = 3, tone = "mid", anchor = "start" } = {}) {
+    return `<text class="iso-face-text" data-tone="${tone}" transform="${transform}" font-size="${size}" text-anchor="${anchor}">${escape(text)}</text>`;
+}
+function groupSvg(children, extra = {}) {
+    return `<g${attrs(extra)}>${Array.isArray(children) ? children.join("") : children}</g>`;
+}
+function figureSvg({ width, height, label, body, standalone = false, className }) {
+    const style = standalone ? `<style>${ISO_CSS}</style>` : "";
+    return `<svg${attrs({
+        xmlns: "http://www.w3.org/2000/svg",
+        class: `iso-svg${standalone ? " iso" : ""}${className ? ` ${className}` : ""}`,
+        "data-theme": standalone || undefined,
+        viewBox: `0 0 ${width} ${height}`,
+        role: "img",
+        "aria-label": label,
+    })}>${style}${Array.isArray(body) ? body.join("") : body}</svg>`;
+}
+function swatchSvg(mark) {
+    if (mark === "raised" || mark === "flat" || mark === "lit") {
+        const body = mark === "flat" ? "M2 6.5 8 3.5 14 6.5 8 9.5Z" : "M2 4.5 8 1.5 14 4.5 14 6 8 9 2 6Z";
+        const crease = mark === "flat" ? "" : `<path class="iso-swatch-crease" d="M2 4.5 8 7.5 14 4.5"/>`;
+        return `<svg class="iso-swatch" data-mark="${mark}" viewBox="0 0 16 10" aria-hidden="true"><path d="${body}"/>${crease}</svg>`;
+    }
+    return `<svg class="iso-swatch" data-mark="${mark}" viewBox="0 0 16 10" aria-hidden="true"><path d="M1.5 5h13"/></svg>`;
+}
+function plateHtml({ fig, title, hint, readout = "", keys = [], caption, body }) {
+    const corner = (name, text, extra = "") => `<span class="iso-plate-corner" data-corner="${name}"${extra}>${escape(text)}</span>`;
+    const legend = keys.length || caption
+        ? `<figcaption class="iso-legend">${keys.length ? `<span class="iso-keys">${keys.map((key) => `<span class="iso-key">${swatchSvg(key.mark)}${escape(key.label)}</span>`).join("")}</span>` : ""}${caption ? `<span class="iso-caption">${escape(caption)}</span>` : ""}</figcaption>`
+        : "";
+    return `<figure class="iso-figure"><div class="iso-plate"><div class="iso-plate-corners" aria-hidden="true">${corner("fig", fig)}${title ? corner("title", title) : ""}${hint ? corner("hint", hint) : ""}${corner("readout", readout, " data-readout")}</div>${body}</div>${legend}</figure>`;
+}
+function pageHtml({ title, theme = "dark", body, script = "", width = 650 }) {
+    return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escape(title)}</title><style>${ISO_CSS}${PAGE_CSS.replace("__WIDTH__", String(width))}</style></head><body class="iso" data-theme="${theme}"><main class="iso-page">${body}</main>${script ? `<script type="module">${script.replace(/<\/(script)/gi, "<\\/$1")}<\/script>` : ""}</body></html>`;
+}
+const PAGE_CSS = `
+*{box-sizing:border-box}
+html{color-scheme:dark}
+body[data-theme="light"]{color-scheme:light}
+body{margin:0;background:var(--anatomy-page);color:var(--anatomy-text);font:14px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+.iso-page{width:min(__WIDTH__px,100% - 32px);margin:64px auto 96px}
+`;
+const ISO_CSS = `
+.iso{
+  --anatomy-page:#0b0b0b;--anatomy-card:#131313;--anatomy-text:#a3a3a3;--anatomy-strong:#e6e6e6;--anatomy-muted:#6e6e6e;
+  --anatomy-paper:#131313;--anatomy-face:#1b1b1b;--anatomy-top:#1c1c1c;
+  --anatomy-shade-0:#0f0f0f;--anatomy-shade-1:#121212;--anatomy-shade-2:#151515;--anatomy-shade-3:#181818;
+  --anatomy-lit-top:#262626;--anatomy-lit-shade:#1d1d1d;
+  --anatomy-hi:#d4d4d4;--anatomy-mid:#6a6a6a;--anatomy-lo:#3e3e3e;--anatomy-faint:#2a2a2a;--anatomy-lit:#ffffff;
+  --anatomy-halo:#050505;--anatomy-halo-opacity:.9;--anatomy-dot:#e6e6e6;
+  --anatomy-red:#ff6b6b;--anatomy-green:#6be0a0;--anatomy-blue:#6b9bff;
+  --anatomy-weight:.6px;--anatomy-ease:cubic-bezier(.32,.72,0,1);
+  --anatomy-mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --anatomy-lift:inset 0 1px 0 0 #ffffff0a,inset 0 0 0 1px #ffffff06,0 0 0 1px #00000026,0 1px 1px -.5px #00000014,0 3px 3px -1.5px #00000014,0 6px 6px -3px #00000014,0 12px 12px -6px #00000014;
+}
+.iso[data-theme="light"]{
+  --anatomy-page:#f2f2ef;--anatomy-card:#fbfbfa;--anatomy-text:#57575a;--anatomy-strong:#18181a;--anatomy-muted:#8c8c90;
+  --anatomy-paper:#fbfbfa;--anatomy-face:#ffffff;--anatomy-top:#ffffff;
+  --anatomy-shade-0:#dcdcd9;--anatomy-shade-1:#e5e5e2;--anatomy-shade-2:#ededea;--anatomy-shade-3:#f4f4f1;
+  --anatomy-lit-top:#ffffff;--anatomy-lit-shade:#eeeeeb;
+  --anatomy-hi:#26262a;--anatomy-mid:#8a8a8f;--anatomy-lo:#b4b4b8;--anatomy-faint:#d4d4d6;--anatomy-lit:#000000;
+  --anatomy-halo:#8a8a80;--anatomy-halo-opacity:.32;--anatomy-dot:#3a3a3e;
+  --anatomy-red:#e5484d;--anatomy-green:#30a46c;--anatomy-blue:#3e63dd;
+  --anatomy-lift:inset 0 1px 0 0 #ffffff,0 0 0 1px #0000000f,0 1px 1px -.5px #0000000a,0 3px 3px -1.5px #0000000a,0 6px 6px -3px #0000000a,0 12px 12px -6px #0000000a;
+}
+.iso-svg{display:block;width:100%;height:auto;overflow:visible}
+.iso-svg path,.iso-svg circle{vector-effect:non-scaling-stroke}
+.iso-fill{fill:var(--anatomy-paper);stroke:none}
+.iso-solid[data-lit]>.iso-fill{fill:var(--anatomy-face)}
+.iso-shade,.iso-top{stroke:none}
+.iso-shade[data-shade="0"]{fill:var(--anatomy-shade-0)}
+.iso-shade[data-shade="1"]{fill:var(--anatomy-shade-1)}
+.iso-shade[data-shade="2"]{fill:var(--anatomy-shade-2)}
+.iso-shade[data-shade="3"]{fill:var(--anatomy-shade-3)}
+.iso-top{fill:var(--anatomy-top)}
+.iso-solid[data-lit]>.iso-top{fill:var(--anatomy-lit-top)}
+.iso-solid[data-lit]>.iso-shade{fill:var(--anatomy-lit-shade)}
+.iso-solid[data-seamless]>.iso-shade,.iso-solid[data-seamless]>.iso-top{stroke-width:.4;stroke-linejoin:round}
+.iso-solid[data-seamless]>.iso-shade[data-shade="0"]{stroke:var(--anatomy-shade-0)}
+.iso-solid[data-seamless]>.iso-shade[data-shade="1"]{stroke:var(--anatomy-shade-1)}
+.iso-solid[data-seamless]>.iso-shade[data-shade="2"]{stroke:var(--anatomy-shade-2)}
+.iso-solid[data-seamless]>.iso-shade[data-shade="3"]{stroke:var(--anatomy-shade-3)}
+.iso-solid[data-seamless]>.iso-top{stroke:var(--anatomy-top)}
+.iso-solid[data-seamless][data-lit]>.iso-top{stroke:var(--anatomy-lit-top)}
+.iso-solid[data-seamless][data-lit]>.iso-shade{stroke:var(--anatomy-lit-shade)}
+.iso-solid[data-lit]>.iso-edge{stroke:var(--anatomy-lit)}
+.iso-halo{fill:var(--anatomy-halo);stroke:none;filter:blur(9px);opacity:var(--anatomy-halo-opacity);transform:translateY(3px)}
+.iso-line{fill:none;stroke:var(--anatomy-lo);stroke-width:var(--anatomy-weight);stroke-linecap:round;stroke-linejoin:round}
+.iso-line[data-tone="hi"]{stroke:var(--anatomy-hi)}
+.iso-line[data-tone="mid"]{stroke:var(--anatomy-mid)}
+.iso-line[data-tone="lo"]{stroke:var(--anatomy-lo)}
+.iso-line[data-tone="faint"]{stroke:var(--anatomy-faint)}
+.iso-line[data-tone="lit"]{stroke:var(--anatomy-lit)}
+.iso-line[data-tone="red"]{stroke:var(--anatomy-red)}
+.iso-line[data-tone="green"]{stroke:var(--anatomy-green)}
+.iso-line[data-tone="blue"]{stroke:var(--anatomy-blue)}
+.iso-line[data-dotted]{stroke-dasharray:.01 3.5;stroke-width:1}
+.iso-line[data-dashed]{stroke-dasharray:3 3}
+.iso-line[data-flow]{stroke-dasharray:2 6}
+.iso-wire-end{fill:var(--anatomy-paper);stroke:var(--anatomy-lo);stroke-width:var(--anatomy-weight)}
+.iso-wire[data-tone="hi"] .iso-wire-end{stroke:var(--anatomy-hi)}
+.iso-wire[data-tone="mid"] .iso-wire-end{stroke:var(--anatomy-mid)}
+.iso-wire[data-tone="faint"] .iso-wire-end{stroke:var(--anatomy-faint)}
+.iso-wire[data-tone="lit"] .iso-wire-end{stroke:var(--anatomy-lit)}
+.iso-dots circle{fill:var(--anatomy-dot);stroke:none;opacity:.32}
+.iso-dots[data-tone="hi"] circle{opacity:.85}
+.iso-dots[data-tone="mid"] circle{opacity:.45}
+.iso-dots[data-tone="lo"] circle{opacity:.22}
+.iso-dots[data-tone="faint"] circle{opacity:.12}
+.iso-face-text{fill:var(--anatomy-mid);font-family:var(--anatomy-mono);letter-spacing:.04em}
+.iso-face-text[data-tone="hi"]{fill:var(--anatomy-hi)}
+.iso-face-text[data-tone="lo"]{fill:var(--anatomy-lo)}
+.iso-face-text[data-tone="faint"]{fill:var(--anatomy-faint)}
+.tb-body{fill:var(--anatomy-shade-2);stroke:none}
+.tb-shine{fill:var(--anatomy-top);stroke:none}
+.tb-shade{fill:var(--anatomy-shade-0);stroke:none}
+.tb-ring{fill:none;stroke:var(--anatomy-lo);stroke-width:.45;stroke-linecap:butt;stroke-linejoin:round}
+.tb-ring[data-tone="mid"]{stroke:var(--anatomy-mid)}
+.tb-ring[data-tone="faint"]{stroke:var(--anatomy-faint)}
+.tb-ring[data-tone="hi"]{stroke:var(--anatomy-hi)}
+@keyframes iso-flow{to{stroke-dashoffset:-32}}
+@keyframes iso-pulse{0%,100%{opacity:.18}12%{opacity:1}40%{opacity:.18}}
+.iso-line[data-flow]{animation:iso-flow 1600ms linear infinite}
+.iso-dots circle[data-pulse]{animation:iso-pulse 1600ms steps(1,end) infinite;animation-delay:var(--pulse-at,0ms)}
+.iso-figure{margin:32px 0 36px}
+.iso-plate{position:relative;padding:52px 24px;border-radius:0;background:var(--anatomy-card);box-shadow:0 0 0 1px var(--anatomy-mid);--anatomy-paper:var(--anatomy-card)}
+.iso-plate-corners{position:absolute;inset:18px 20px;pointer-events:none}
+.iso-plate-corner{position:absolute;color:var(--anatomy-muted);font-family:var(--anatomy-mono);font-size:10.5px;line-height:1;letter-spacing:.04em;white-space:nowrap}
+.iso-plate-corner[data-corner="fig"]{top:0;left:0;color:var(--anatomy-text)}
+.iso-plate-corner[data-corner="title"]{top:0;right:0;text-transform:uppercase;letter-spacing:.1em}
+.iso-plate-corner[data-corner="hint"]{bottom:0;left:0;text-transform:uppercase;letter-spacing:.1em}
+.iso-plate-corner[data-corner="readout"]{right:0;bottom:0;color:var(--anatomy-text);font-variant-numeric:tabular-nums}
+.iso-plate .iso-svg{margin:0 auto}
+.iso-legend{display:grid;gap:8px;margin-top:12px;color:var(--anatomy-muted);font-size:13px;line-height:1.55}
+.iso-keys{display:flex;flex-wrap:wrap;gap:6px 18px}
+.iso-key{display:inline-flex;align-items:center;gap:7px}
+.iso-swatch{width:16px;height:10px;flex:none;overflow:visible}
+.iso-swatch path{fill:none;stroke:var(--anatomy-hi);stroke-width:1;vector-effect:non-scaling-stroke;stroke-linejoin:round;stroke-linecap:round}
+.iso-swatch[data-mark="raised"] path,.iso-swatch[data-mark="flat"] path{stroke:var(--anatomy-mid)}
+.iso-swatch[data-mark="lit"] path{stroke:var(--anatomy-lit)}
+.iso-swatch[data-mark="dim"] path{stroke:var(--anatomy-lo)}
+.iso-swatch[data-mark="dotted"] path{stroke-dasharray:.01 3;stroke-width:1.4}
+.iso-swatch[data-mark="dashed"] path{stroke-dasharray:3 2.5}
+.iso-swatch[data-mark="red"] path{stroke:var(--anatomy-red)}
+.iso-swatch[data-mark="green"] path{stroke:var(--anatomy-green)}
+.iso-swatch[data-mark="blue"] path{stroke:var(--anatomy-blue)}
+.iso-swatch-crease{stroke:var(--anatomy-lo)!important}
+@media (max-width:560px){.iso-plate{padding:48px 12px 70px}.iso-plate-corner[data-corner="hint"]{bottom:18px}}
+@media (prefers-reduced-motion:reduce){.iso-line[data-flow],.iso-dots circle[data-pulse]{animation:none}}
+`;
+
+const W = 900, H = 560;
+const COLORS = ["#e5484d", "#f5a524", "#30a46c", "#3e63dd"];
+
+// ---- world, in millimetres: x along the X rail, y front-back, z up ----
+const BASE = { x: -320, y: -180, w: 960, d: 610, r: 16 }, BASE_H = 36, FOOT_H = 14;
+const RAILS = [-262, 582];
+const RAIL_Y0 = -125, RAIL_Y1 = 320;
+const BED_TOP = 112;
+const NOZ_DY = 72;                       // nozzle sits 72 mm in front of the beam centre
+const BEAM = { x: -296, y: -28, w: 912, d: 56, r: 4 }, BEAM_Z0 = 330, BEAM_Z1 = 390;
+const HEAD_W = 55;
+const LP = [-174, -116, -58];            // left park slots L1, L2, L3 (heads 1, 2, 3)
+const RP = [358, 416, 474];              // right park slots R1, R2, R3 (heads 2, 3, 4)
+
+// ---- the print job: each head owns one shape on the 300 x 300 bed ----
+const poly = (cx, cy, r, n, rot) => Array.from({ length: n + 1 }, (_, i) => {
+  const a = rot + (i / n) * Math.PI * 2;
+  return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+});
+const SHAPES = [
+  [[45, 45], [130, 45], [130, 130], [45, 130], [45, 45]],
+  poly(215, 88, 45, 48, Math.PI),
+  poly(88, 215, 50, 3, -Math.PI / 2),
+  poly(215, 215, 47, 6, 0),
+];
+const lengthOf = (pts) => pts.slice(1).reduce((s, p, i) => s + Math.hypot(p[0] - pts[i][0], p[1] - pts[i][1]), 0);
+const pointAlong = (pts, dist) => {
+  for (let i = 1; i < pts.length; i++) {
+    const seg = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+    if (dist <= seg) { const f = seg ? dist / seg : 0; return [pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * f, pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * f]; }
+    dist -= seg;
+  }
+  return pts[pts.length - 1];
+};
+const PROGRAM = [0, 2, 1, 3];
+
+// ---- settings the user can change ----
+const cfg = { vx: 600, ax: 6000, vy: 400, ay: 4000, print: 150, scale: 0.5, az: 42, el: 30 };
+for (const [key, value] of new URLSearchParams(location.hash.slice(1))) if (key in cfg && Number.isFinite(Number(value))) cfg[key] = Number(value);
+
+// ---- state ----
+let xs = [LP[0], RP[0], RP[1], RP[2]];
+let ny = 150;                              // nozzle Y on the bed
+let active = -1, jobAt = 0, queued = null, cycles = 0;
+let phase = { kind: "idle" };
+let trails = [];
+let playing = !matchMedia("(prefers-reduced-motion: reduce)").matches;
+let P;
+
+// ---- helpers ----
+const S = (paths, o) => solidSvg(paths, o);
+const Ln = (d, o) => lineSvg(d, o);
+const Dt = (pts, o) => dotsSvg(pts, o);
+const at = (p) => iso(p, P);
+const byDepth = (items) => items.sort((a, b) => a.depth - b.depth).map((i) => i.svg).join("");
+const fmt = (v, n = 0) => v.toFixed(n).replace(".", ",").replace("-", "−");
+
+// ================= geometry =================
+function baseSvg() {
+  const out = ['<path class="iso-halo" d="' + haloOf(BASE, -BASE_H - FOOT_H, BASE_H, P) + '"/>'];
+  out.push(byDepth(corners(BASE, 44).map(([x, y]) => ({
+    depth: depthOf([x, y, 0], P),
+    svg: S(cylinder(x, y, 24, -BASE_H - FOOT_H, 4, P, 32), { tone: "lo" }) + S(cylinder(x, y, 18, -BASE_H - FOOT_H + 4, FOOT_H - 4, P, 32), { tone: "mid" }),
+  }))));
+  out.push(S(slabOf(BASE, -BASE_H, BASE_H, P, 10, 3), { tone: "mid", inner: Ln(sideSeam(BASE, -14, P, 10), { tone: "faint" }) }));
+  out.push(Ln(planOutline(insetPlan(BASE, 14), 0, P, 10), { tone: "lo" }));
+  const screws = corners(BASE, 26);
+  out.push(Ln(screws.map(([x, y]) => ring(x, y, 7, 0, P, 16)).join(""), { tone: "lo" }));
+  out.push(Dt(screws.map(([x, y]) => at([x, y, 0])), { size: 0.55 }));
+  // X ruler under the bed: 0 to 300 mm
+  const strip = { x: -14, y: 336, w: 328, d: 18, r: 2 };
+  out.push(S(slabOf(strip, 0, 1.5, P, 3), { tone: "lo", crease: "none" }));
+  const t = topTicks(0, 300, 10, 5, strip.y + 2, 1.5, [6, 12], P);
+  out.push(Ln(t.minor, { tone: "lo" }), Ln(t.major, { tone: "mid" }));
+  out.push(Dt([at([strip.x + 5, strip.y + 9, 1.5]), at([strip.x + strip.w - 5, strip.y + 9, 1.5])], { size: 0.45 }));
+  // name plate
+  const plate = { x: 400, y: 352, w: 170, d: 46, r: 3 };
+  out.push(S(slabOf(plate, 0, 1.5, P, 3, 0.6), { tone: "lo", crease: "none" }));
+  out.push(faceTextSvg(topMatrix([plate.x + plate.w / 2, plate.y + 29], 1.5, P, "x"), "QUADRO", { size: 17, tone: "mid", anchor: "middle" }));
+  out.push(Dt(corners(plate, 6).map(([x, y]) => at([x, y, 1.5])), { size: 0.45 }));
+  return out.join("");
+}
+
+function railSvg(rx) {
+  const out = [];
+  const motor = { x: rx - 21, y: RAIL_Y0 - 46, w: 42, d: 42, r: 3 };
+  out.push(S(slabOf(motor, 0, 42, P, 4, 1), { tone: "mid", inner: Ln(sideSeam(motor, 12, P, 4), { tone: "faint" }) + Ln(sideSeam(motor, 30, P, 4), { tone: "faint" }) }));
+  out.push(Dt(corners(motor, 5).map(([x, y]) => at([x, y, 42])), { size: 0.45 }));
+  out.push(S(cylinder(rx, motor.y + 21, 9, 42, 3, P, 24), { tone: "lo" }));
+  out.push(S(cylinder(rx, motor.y + 21, 3, 45, 8, P, 16), { tone: "mid" }));
+  const bedPlan = { x: rx - 26, y: RAIL_Y0, w: 52, d: RAIL_Y1 - RAIL_Y0, r: 3 };
+  out.push(S(slabOf(bedPlan, 0, 8, P, 3, 1), { tone: "mid" }));
+  const railPlan = { x: rx - 9, y: RAIL_Y0 + 8, w: 18, d: RAIL_Y1 - RAIL_Y0 - 26, r: 1.5 };
+  out.push(S(slabOf(railPlan, 8, 14, P, 3, 0.8), { tone: "mid" }));
+  const bolts = [];
+  for (let y = RAIL_Y0 + 30; y < RAIL_Y1 - 20; y += 60) bolts.push(at([rx, y, 22]));
+  out.push(Dt(bolts, { size: 0.45, tone: "lo" }));
+  out.push(S(slabOf({ x: rx - 16, y: RAIL_Y1 - 16, w: 32, d: 10, r: 1.5 }, 8, 20, P, 3, 0.6), { tone: "mid" }));
+  return out.join("");
+}
+
+function bedSvg() {
+  const items = [];
+  const ped = { x: 60, y: 60, w: 180, d: 180, r: 8 };
+  items.push({ depth: depthOf([150, 150, 0], P), svg: S(slabOf(ped, 0, 76, P, 6, 1.2), { tone: "mid", inner: Ln(sideSeam(ped, 26, P, 6), { tone: "faint" }) }) + Ln(planOutline(insetPlan(ped, 12), 76, P, 6), { tone: "faint" }) });
+  for (const [x, y] of [[22, 22], [278, 22], [22, 278], [278, 278]]) {
+    items.push({ depth: depthOf([x, y, 0], P), svg: S(cylinder(x, y, 13, 0, 6, P, 24), { tone: "lo" }) + S(cylinder(x, y, 6, 6, 86, P, 20), { tone: "mid", crease: "none" }) });
+  }
+  const carrier = { x: -12, y: -12, w: 324, d: 324, r: 10 };
+  const plate = { x: 0, y: 0, w: 300, d: 300, r: 4 };
+  let grid = "";
+  for (let v = 50; v < 300; v += 50) grid += lineOnTop([v, 0], [v, 300], BED_TOP, P) + lineOnTop([0, v], [300, v], BED_TOP, P);
+  return byDepth(items)
+    + S(slabOf(carrier, 92, 12, P, 6, 1.2), { tone: "mid" })
+    + Dt(corners(carrier, 6).map(([x, y]) => at([x, y, 104])), { size: 0.45 })
+    + S(slabOf(plate, 104, 8, P, 4, 1), { tone: "mid" })
+    + Ln(grid, { tone: "faint" })
+    + Ln(planOutline(insetPlan(plate, 4), BED_TOP, P, 4), { tone: "lo" });
+}
+
+function gantrySvg() {
+  const out = [];
+  for (const rx of RAILS) {
+    const block = { x: rx - 30, y: -42, w: 60, d: 84, r: 4 };
+    out.push(S(slabOf(block, 22, 18, P, 4, 1), { tone: "mid" }));
+    out.push(Dt(corners(block, 7).map(([x, y]) => at([x, y, 40])), { size: 0.45 }));
+    const post = { x: rx - 20, y: -26, w: 40, d: 52, r: 3 };
+    out.push(S(slabOf(post, 40, BEAM_Z0 - 40, P, 4, 1), { tone: "mid", inner: Ln(sideSeam(post, 185, P, 4), { tone: "faint" }) }));
+  }
+  out.push(S(slabOf(BEAM, BEAM_Z0, BEAM_Z1 - BEAM_Z0, P, 4, 2), { tone: "mid", inner: Ln(sideSeam(BEAM, 352, P, 4), { tone: "faint" }) }));
+  // X rail on the beam front face
+  out.push(S(slabOf({ x: -280, y: 28, w: 880, d: 8, r: 1 }, 354, 18, P, 2, 0.6), { tone: "mid" }));
+  // ruler on top of the beam, with park slots and the print range outlined
+  const strip = { x: -286, y: -24, w: 892, d: 14, r: 2 };
+  out.push(S(slabOf(strip, BEAM_Z1, 1.5, P, 3), { tone: "lo", crease: "none" }));
+  const t = topTicks(-280, 600, 10, 5, strip.y + 2, BEAM_Z1 + 1.5, [5, 10], P);
+  out.push(Ln(t.minor, { tone: "lo" }), Ln(t.major, { tone: "mid" }));
+  const slot = (cx) => planOutline({ x: cx - HEAD_W / 2, y: -6, w: HEAD_W, d: 26, r: 3 }, BEAM_Z1, P, 3);
+  out.push(Ln([...LP, ...RP].map(slot).join(""), { tone: "lo" }));
+  out.push(Ln(planOutline({ x: 0, y: -6, w: 300, d: 26, r: 3 }, BEAM_Z1, P, 3), { tone: "mid" }));
+  out.push(Dt([...LP, ...RP].map((cx) => at([cx, 7, BEAM_Z1])), { size: 0.5, tone: "lo" }));
+  return out.join("");
+}
+
+function headSvg(j) {
+  const lit = j === active;
+  const o = [];
+  const car = { x: -HEAD_W / 2, y: 36, w: HEAD_W, d: 10, r: 2 };
+  o.push(S(slabOf(car, 318, 70, P, 3, 0.8), { tone: "mid" }));
+  o.push(Dt([[-20, 378], [20, 378], [-20, 328], [20, 328]].map(([x, z]) => at([x, 46, z])), { size: 0.45 }));
+  const hood = { x: -26, y: 46, w: 52, d: 50, r: 5 };
+  o.push(S(slabOf(hood, 196, 122, P, 5, 1), { tone: lit ? "hi" : "mid", crease: lit ? "lo" : "faint", inner: Ln(sideSeam(hood, 236, P, 5), { tone: "faint" }) }));
+  o.push(S(slabOf({ x: -12, y: 70, w: 24, d: 18, r: 2 }, 318, 3, P, 3), { tone: "mid", className: "q-c" + j }));
+  o.push(S(cylinder(0, 58, 4, 318, 14, P, 16), { tone: "mid" }));
+  // fan on the front face
+  const fan = [0, 96, 276];
+  let blades = "";
+  for (let b = 0; b < 7; b++) {
+    const a = (b / 7) * Math.PI * 2;
+    blades += segment([Math.cos(a) * 4.5, 96, fan[2] + Math.sin(a) * 4.5], [Math.cos(a + 0.5) * 14, 96, fan[2] + Math.sin(a + 0.5) * 14], P);
+  }
+  o.push(Ln(sideRing(fan, 18, "y", P, 32), { tone: "lo" }), Ln(sideRing(fan, 14, "y", P, 32), { tone: "lo" }), Ln(blades, { tone: "faint" }), Ln(sideRing(fan, 4.5, "y", P, 16), { tone: "mid" }));
+  o.push(Dt([[-15, 291], [15, 291], [-15, 261], [15, 261]].map(([x, z]) => at([x, 96, z])), { size: 0.4 }));
+  o.push(faceTextSvg(sideMatrix([0, 96], 222, P, "left"), "T" + (j + 1), { size: 14, tone: lit ? "hi" : "mid", anchor: "middle" }));
+  // hot end: ducts either side, heatsink, heater block, nozzle
+  o.push(S(slabOf({ x: -24, y: 58, w: 8, d: 30, r: 1.5 }, 142, 54, P, 2), { tone: "mid" }));
+  o.push(S(cylinder(0, 72, 10, 160, 36, P, 28), { tone: "mid", inner: Ln([166, 172, 178, 184, 190].map((z) => sideArc(0, 72, 10, z, P, 20)).join(""), { tone: "faint" }) }));
+  o.push(S(slabOf({ x: -12, y: 62, w: 24, d: 20, r: 1.5 }, 132, 28, P, 2, 0.5), { tone: "mid" }));
+  o.push(S(cylinder(0, 72, 5, 122, 10, P, 16), { tone: "hi", lit }));
+  o.push(S(cylinder(0, 72, 2.2, BED_TOP + 2, 8, P, 12), { tone: "hi", lit }));
+  o.push(S(slabOf({ x: 16, y: 58, w: 8, d: 30, r: 1.5 }, 142, 54, P, 2), { tone: "mid" }));
+  return o.join("");
+}
+
+// ================= scene =================
+const svg = document.querySelector(".iso-stage svg");
+const layer = (name) => svg.querySelector('[data-layer="' + name + '"]');
+function fitView() {
+  const pts = [...boxCorners(BASE, -BASE_H - FOOT_H, 0)];
+  for (const gy of [-NOZ_DY, 300 - NOZ_DY]) pts.push(...boxCorners({ x: BEAM.x, y: gy + BEAM.y, w: BEAM.w, d: BEAM.d + 70, r: 0 }, 0, BEAM_Z1 + 2));
+  P = fitProjection(pts, W, H, { pad: 14, azimuth: cfg.az, elevation: cfg.el });
+}
+function buildScene() {
+  fitView();
+  layer("back").innerHTML = baseSvg() + railSvg(RAILS[0]) + bedSvg() + railSvg(RAILS[1]);
+  layer("trails").innerHTML = trails.map((t) => '<path class="q-trail" stroke="' + COLORS[t.c] + '" d=""/>').join("");
+  trails.forEach((t, i) => { t.el = layer("trails").children[i]; t.dirty = true; });
+  layer("gantry").innerHTML = gantrySvg() + [0, 1, 2, 3].map((j) => '<g data-head="' + j + '">' + headSvg(j) + "</g>").join("");
+  draw();
+}
+function draw() {
+  layer("gantry").setAttribute("transform", translateAlong(P, [0, ny - NOZ_DY, 0]));
+  layer("gantry").querySelectorAll("[data-head]").forEach((g, j) => g.setAttribute("transform", translateAlong(P, [xs[j], 0, 0])));
+  for (const t of trails) if (t.dirty) { t.el.setAttribute("d", pathOf(t.pts.map(([x, y]) => at([x, y, BED_TOP + 0.4])))); t.dirty = false; }
+}
+
+// ================= motion =================
+// Fastest time for one axis on its own trapezoid, and the accel share of that time.
+function solo(d, v, a) {
+  d = Math.abs(d);
+  if (d < 1e-6) return { T: 0, f: 0.5 };
+  if (d > (v * v) / a) { const T = d / v + v / a; return { T, f: v / a / T }; }
+  return { T: 2 * Math.sqrt(d / a), f: 0.5 };
+}
+// Shortest common T for a shared profile shape f, so no axis exceeds its own v and a.
+function commonT(axes, f) {
+  return Math.max(...axes.map(({ d, v, a }) => { d = Math.abs(d); return Math.max(d / (v * (1 - f)), Math.sqrt(d / (a * f * (1 - f)))); }));
+}
+function ease(t, T, f) {           // normalised trapezoid, 0..1
+  if (T <= 0) return 1;
+  const ta = f * T, vn = 1 / (T - ta), an = vn / ta;
+  if (t <= 0) return 0;
+  if (t >= T) return 1;
+  if (t < ta) return 0.5 * an * t * t;
+  if (t < T - ta) return 0.5 * an * ta * ta + vn * (t - ta);
+  return 1 - 0.5 * an * (T - t) * (T - t);
+}
+
+function startToolchange(next) {
+  const [sx, sy] = SHAPES[next][0];
+  const to = xs.map((_, j) => (j < next ? LP[j] : j > next ? RP[j - 1] : sx));
+  const axes = to.map((t, j) => ({ d: t - xs[j], v: cfg.vx, a: cfg.ax })).concat([{ d: sy - ny, v: cfg.vy, a: cfg.ay }]);
+  const lead = axes.map((ax) => solo(ax.d, ax.v, ax.a)).reduce((m, s) => (s.T > m.T ? s : m), { T: 0, f: 0.5 });
+  const f = lead.f, T = commonT(axes, f);
+  const vn = T > 0 ? 1 / (T - f * T) : 0;
+  phase = { kind: "change", t: 0, T, f, from: xs.slice(), to, y0: ny, y1: sy, prev: active, next, peaks: axes.map((ax) => Math.abs(ax.d) * vn) };
+  active = next;
+  buildHeads();
+  const names = ["T1", "T2", "T3", "T4", "Y"];
+  const moves = axes.map((ax, i) => (Math.abs(ax.d) < 0.5 ? null : names[i] + " " + (ax.d > 0 ? "+" : "") + fmt(ax.d) + " mm (tepe " + fmt(phase.peaks[i]) + " mm/s)")).filter(Boolean);
+  changeEl.innerHTML = "<b>Son eşzamanlı hareket: " + (phase.prev < 0 ? "başlangıç" : "T" + (phase.prev + 1)) + " → T" + (next + 1) + " · " + fmt(T, 2) + " s</b><br>" + moves.join(" · ");
+}
+function startPrint() {
+  if (cycles > 0 && jobAt === 0 && cycles % 2 === 0) { trails = []; layer("trails").innerHTML = ""; }
+  const t = { c: active, pts: [SHAPES[active][0].slice()] };
+  t.el = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  t.el.setAttribute("class", "q-trail");
+  t.el.setAttribute("stroke", COLORS[active]);
+  layer("trails").appendChild(t.el);
+  trails.push(t);
+  phase = { kind: "print", s: 0, L: lengthOf(SHAPES[active]), trail: t };
+}
+function nextJob() {
+  let next;
+  if (queued !== null) { next = queued; queued = null; }
+  else { next = PROGRAM[jobAt]; jobAt = (jobAt + 1) % PROGRAM.length; if (jobAt === 0) cycles++; }
+  startToolchange(next);
+}
+function buildHeads() {
+  layer("gantry").querySelectorAll("[data-head]").forEach((g, j) => { g.innerHTML = headSvg(j); });
+}
+
+function step(dt) {
+  if (phase.kind === "idle") return nextJob();
+  if (phase.kind === "change") {
+    phase.t = Math.min(phase.T, phase.t + dt);
+    const u = ease(phase.t, phase.T, phase.f);
+    xs = phase.from.map((x0, j) => x0 + (phase.to[j] - x0) * u);
+    ny = phase.y0 + (phase.y1 - phase.y0) * u;
+    if (phase.t >= phase.T) { phase.done = phase.T; startPrint(); }
+    return;
+  }
+  if (phase.kind === "print") {
+    phase.s = Math.min(phase.L, phase.s + cfg.print * dt);
+    const [x, y] = pointAlong(SHAPES[active], phase.s);
+    xs[active] = x; ny = y;
+    const tr = phase.trail, last = tr.pts[tr.pts.length - 1];
+    if (Math.hypot(x - last[0], y - last[1]) > 1.5 || phase.s >= phase.L) { tr.pts.push([x, y]); tr.dirty = true; }
+    if (phase.s >= phase.L) nextJob();
+  }
+}
+
+// ================= readout and status =================
+const readout = document.querySelector("[data-readout]");
+const statusEl = document.querySelector("[data-status]");
+const changeEl = document.querySelector("[data-change]");
+function slotName(j, x) {
+  const near = (a) => Math.abs(x - a) < 0.5;
+  for (let i = 0; i < 3; i++) { if (near(LP[i])) return "park L" + (i + 1); if (near(RP[i])) return "park R" + (i + 1); }
+  return null;
+}
+function report() {
+  let text;
+  if (phase.kind === "change") text = "Takım değişimi " + (phase.prev < 0 ? "başlangıç" : "T" + (phase.prev + 1)) + " → T" + (phase.next + 1) + " · " + fmt(phase.t, 2) + " / " + fmt(phase.T, 2) + " s";
+  else if (phase.kind === "print") text = "T" + (active + 1) + " baskıda · X " + fmt(xs[active]) + " · Y " + fmt(ny) + " mm";
+  else text = "hazır";
+  if (readout.textContent !== text) readout.textContent = text;
+  const rows = xs.map((x, j) => {
+    const where = j === active && phase.kind === "print" ? "baskıda" : slotName(j, x) || (phase.kind === "change" ? "hareket" : "—");
+    return '<div class="q-head' + (j === active ? " is-active" : "") + '"><i style="background:' + COLORS[j] + '"></i><b>T' + (j + 1) + "</b><span>" + where + "</span><em>X " + fmt(x) + "</em></div>";
+  }).join("");
+  if (statusEl.innerHTML !== rows) statusEl.innerHTML = rows;
+}
+
+// ================= loop =================
+let last = 0, frame = 0, visible = true;
+function tick(now) {
+  const dt = last ? Math.min((now - last) / 1000, 1 / 20) : 1 / 60;
+  last = now;
+  if (playing) step(dt * cfg.scale);
+  draw();
+  report();
+  frame = playing && visible ? requestAnimationFrame(tick) : 0;
+}
+const run = () => { if (!frame) { last = 0; frame = requestAnimationFrame(tick); } };
+new IntersectionObserver((e) => { visible = e[e.length - 1].isIntersecting; if (visible) run(); }).observe(svg);
+
+// ================= controls =================
+const $ = (sel) => document.querySelector(sel);
+const playBtn = $("[data-play]");
+const setPlaying = (on) => { playing = on; playBtn.textContent = on ? "Durdur" : "Başlat"; playBtn.setAttribute("aria-pressed", String(on)); if (on) run(); };
+playBtn.addEventListener("click", () => setPlaying(!playing));
+document.querySelectorAll("[data-pick]").forEach((b) => b.addEventListener("click", () => {
+  queued = Number(b.dataset.pick);
+  if (phase.kind === "print") { nextJob(); }
+  if (!playing) setPlaying(true);
+}));
+$("[data-clear]").addEventListener("click", () => {
+  trails = phase.kind === "print" ? [phase.trail] : [];
+  if (phase.kind === "print") { phase.trail.pts = [[xs[active], ny]]; phase.trail.dirty = true; }
+  layer("trails").replaceChildren(...trails.map((t) => t.el));
+});
+document.querySelectorAll("input[data-cfg]").forEach((input) => {
+  const key = input.dataset.cfg, out = input.parentElement.querySelector("output");
+  const show = () => { out.textContent = key === "scale" ? fmt(cfg[key], 2) + "×" : fmt(cfg[key]); };
+  input.value = cfg[key]; show();
+  input.addEventListener("input", () => {
+    cfg[key] = Number(input.value); show();
+    if (key === "az" || key === "el") buildScene();
+  });
+});
+document.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => {
+  const [az, el] = b.dataset.view.split(",").map(Number);
+  cfg.az = az; cfg.el = el;
+  document.querySelector('input[data-cfg="az"]').value = az; document.querySelector('input[data-cfg="el"]').value = el;
+  document.querySelector('input[data-cfg="az"]').dispatchEvent(new Event("input"));
+  document.querySelector('input[data-cfg="el"]').dispatchEvent(new Event("input"));
+}));
+// drag across the figure to turn it
+const stage = $(".iso-stage");
+let drag = null;
+stage.addEventListener("pointerdown", (e) => { drag = { x: e.clientX, y: e.clientY, az: cfg.az, el: cfg.el }; stage.setPointerCapture(e.pointerId); });
+stage.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  const box = svg.getBoundingClientRect();
+  cfg.az = Math.round(Math.min(70, Math.max(25, drag.az - ((e.clientX - drag.x) / box.width) * 90)));
+  cfg.el = Math.round(Math.min(50, Math.max(18, drag.el + ((e.clientY - drag.y) / box.height) * 60)));
+  document.querySelector('input[data-cfg="az"]').value = cfg.az; document.querySelector('input[data-cfg="el"]').value = cfg.el;
+  document.querySelectorAll("input[data-cfg=az], input[data-cfg=el]").forEach((i) => { i.parentElement.querySelector("output").textContent = fmt(cfg[i.dataset.cfg]); });
+  buildScene();
+});
+const endDrag = () => { drag = null; };
+stage.addEventListener("pointerup", endDrag);
+stage.addEventListener("pointercancel", endDrag);
+// theme
+const themeBtn = $("[data-theme-toggle]");
+const themeRoot = document.querySelector(".iso[data-theme]") || document.body;
+const setTheme = (t) => { themeRoot.dataset.theme = t; themeBtn.textContent = t === "dark" ? "Açık tema" : "Koyu tema"; };
+const hostTheme = () => document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+setTheme(hostTheme());
+matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => setTheme(hostTheme()));
+new MutationObserver(() => setTheme(hostTheme())).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+themeBtn.addEventListener("click", () => setTheme(document.body.dataset.theme === "dark" ? "light" : "dark"));
+
+buildScene();
+setPlaying(playing);
+report();
+</script></body></html>
