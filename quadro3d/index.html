@@ -200,11 +200,13 @@ const MAT = {
   shell: new THREE.MeshStandardMaterial({ color: 0xe8e9eb, roughness: 0.6, metalness: 0 }),
   pei: new THREE.MeshStandardMaterial({ color: 0xcaa452, roughness: 0.82, metalness: 0.3 }),
   dark: new THREE.MeshStandardMaterial({ color: 0x303236, roughness: 0.6, metalness: 0.2 }),
+  lcd: new THREE.MeshStandardMaterial({ color: 0x131416, roughness: 0.35, metalness: 0.15 }),
   other: new THREE.MeshStandardMaterial({ color: 0xa3a7ac, roughness: 0.45, metalness: 0.4 }),
 };
 function materialFor(path) {
   const p = path.toLowerCase().replace(/_/g, " ");          // three.js turns spaces in node names into "_"
   if (p.includes("toolhead")) return MAT.head;
+  if (p.includes("lcd")) return MAT.lcd;                         // the display housing is black
   if (p.includes("pei sheet") && !p.includes("magnet")) return MAT.pei;
   if (p.includes("yan-kapak")) return MAT.dock;
   if (p.includes("mgn")) return MAT.rail;
