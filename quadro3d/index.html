@@ -79,7 +79,7 @@ button[data-play] { min-width: 104px; font-weight: 600; }
       <label>Y tabla maks. hız (mm/s) <output></output><input id="s-vy" type="range" data-cfg="vy" min="100" max="1500" step="50"></label>
       <label>Y tabla ivme (mm/s²) <output></output><input id="s-ay" type="range" data-cfg="ay" min="500" max="20000" step="500"></label>
     </div>
-    <p class="note">Geometri, SolidWorks montajının (Quadro_19_05-12-07) STEP çıktısından geliyor; web için sadeleştirildi. Bu eski revizyondaki fazla dört kafa ve X rayındaki boşta duran MGN12 arabası gizlendi; ekran 45°'ye yatırıldı; filament tutucu ikinci dikmeye aynalandı. Qdock'taki yaylı silikon nozul kapakları, nozul üstlerine geldiğinde 2,5 mm basılır. Makaralar, PTFE ve kafa kabloları montajda olmadığı için temsili çizildi: PTFE kafadan X yan kapağına, oradan filament tutucuya ve makaraya gider. Basılan parça Snapmaker Space'teki "Alignment Test Cube" (CC0), fotoğraflarından yeniden kuruldu: 20 mm küp, 2 × 2 blok, 4 kat, katman 0,2 mm. Hareket mantığı benim modelim; hız ve ivme değerleri varsayımdır. Masa: IKEA LINNMON 150 × 75 cm masa üstü, ADILS ayaklarla 74 cm; yazıcının kapladığı alan, tablanın en ön ve en arka konumu dahil, masada kesikli çizgiyle gösterilir. Odadaki diğer eşyalar ölçek için temsilidir.</p>
+    <p class="note">Geometri, SolidWorks montajının (Quadro_19_05-12-07) STEP çıktısından geliyor; web için sadeleştirildi. Bu eski revizyondaki fazla dört kafa ve X rayındaki boşta duran MGN12 arabası gizlendi; ekran 45°'ye yatırıldı; filament tutucu ikinci dikmeye aynalandı. Qdock'taki yaylı silikon nozul kapakları, nozul üstlerine geldiğinde 2,5 mm basılır. Makaralar, PTFE ve kafa kabloları montajda olmadığı için temsili çizildi: PTFE kafadan X yan kapağına, oradan filament tutucuya ve makaraya gider. Basılan parça Snapmaker Space'teki "Alignment Test Cube" (CC0), fotoğraflarından yeniden kuruldu: 20 mm küp, 2 × 2 blok, 4 kat, katman 0,2 mm. Hareket mantığı benim modelim; hız ve ivme değerleri varsayımdır. Masa: IKEA LINNMON 150 × 75 cm masa üstü, ADILS ayaklarla 74 cm. Odadaki diğer eşyalar ölçek için temsilidir.</p>
   </div>
 </div>
 
@@ -469,7 +469,7 @@ function setActive(j) {
 // LINNMON 150 x 75 cm tabletop on ADILS legs, 74 cm high. Everything else is a stand-in for scale.
 const DESK = { w: 1.5, d: 0.75, t: 0.025, h: 0.74 };
 const roomGroup = new THREE.Group();
-let roomCenter = new THREE.Vector3(), footprintText = "";
+let roomCenter = new THREE.Vector3();
 function mat(color, roughness = 0.6, metalness = 0) { return new THREE.MeshStandardMaterial({ color, roughness, metalness }); }
 function box(w, h, d, m, x, y, z) { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); o.position.set(x, y, z); roomGroup.add(o); return o; }
 function cyl(r0, r1, h, m, x, y, z, seg = 32) { const o = new THREE.Mesh(new THREE.CylinderGeometry(r0, r1, h, seg), m); o.position.set(x, y, z); roomGroup.add(o); return o; }
@@ -534,17 +534,9 @@ function addRoom() {
   cyl(0.04, 0.04, 0.095, mat(0xffffff, 0.3), dk.x1 - 0.14, top + 0.0475, dk.z0 + 0.16);
   spool(dk.x0 + 0.1, top + 0.1, dk.z1 - 0.16, 0x2fa868, 0.1); spool(dk.x0 + 0.19, top + 0.1, dk.z1 - 0.16, 0xe9e6df, 0.1);
   chair(cx + 0.38, floor, dk.z0 - 0.26);
-  // the footprint on the desk, dashed, with its size
   const y = top + 0.0008;
-  const pts = [[fp.x0, fp.z0], [fp.x1, fp.z0], [fp.x1, fp.z1], [fp.x0, fp.z1], [fp.x0, fp.z0]].map(([x, z]) => new THREE.Vector3(x, y, z));
-  const rect = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineDashedMaterial({ color: 0xe5484d, dashSize: 0.02, gapSize: 0.012 }));
-  rect.computeLineDistances(); roomGroup.add(rect);
-  const W = Math.round((fp.x1 - fp.x0) * 100), D = Math.round((fp.z1 - fp.z0) * 100);
-  footprintText = W + " × " + D + " cm";
-  const label = textPlane(["Kapladığı alan", "≈ " + footprintText], 0.22, "#c2363b");
-  label.rotation.set(-Math.PI / 2, 0, Math.PI); label.position.set((fp.x1 + dk.x1) / 2 + 0.02, y + 0.0004, cz - 0.08); roomGroup.add(label);
-  const deskLabel = textPlane(["IKEA LINNMON", "150 × 75 cm"], 0.2, "#6b6d72");
-  deskLabel.rotation.set(-Math.PI / 2, 0, Math.PI); deskLabel.position.set((fp.x1 + dk.x1) / 2 + 0.02, y + 0.0004, cz + 0.16); roomGroup.add(deskLabel);
+  const deskLabel = textPlane(["IKEA LINNMON desk", "150 × 75 cm"], 0.2, "#6b6d72");
+  deskLabel.rotation.set(-Math.PI / 2, 0, Math.PI); deskLabel.position.set((fp.x1 + dk.x1) / 2 + 0.02, y + 0.0004, cz + 0.05); roomGroup.add(deskLabel);
   scene.add(roomGroup);
 }
 function spool(x, y, z, color, r) {
