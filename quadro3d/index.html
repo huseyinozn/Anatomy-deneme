@@ -106,6 +106,8 @@ const LCD_ID = "NAUO389", LCD_SHIFT_X = 600;
 // The filament holder only exists on one upright in the export; the product has it on both.
 const HOLDER_IDS = ["NAUO304", "NAUO305", "NAUO306", "NAUO311", "NAUO312"];
 const MIRROR_X = 28.5;                                           // mid-plane between the uprights
+// The outer cover of the left X side cover came out of the export empty; mirror the right one across the docks' mid-plane.
+const SIDE_COVER_ID = "NAUO78", DOCK_MIRROR_X = 29;
 // A loose MGN12 carriage sits on the X rail in this export; the product has none there.
 const HIDE_IDS = ["NAUO34"];
 // The screen hinges on its gear (axis along x); users tilt it to 45 degrees.
@@ -206,12 +208,13 @@ const MAT = {
 function materialFor(path) {
   const p = path.toLowerCase().replace(/_/g, " ");          // three.js turns spaces in node names into "_"
   if (p.includes("toolhead")) return MAT.head;
-  if (p.includes("lcd")) return MAT.lcd;                         // the display housing is black
+  if (p.includes("lcd")) return /yuvarlak|a30/.test(p) ? MAT.lcd : MAT.shell;   // white housing, black glass bezel and panel
   if (p.includes("pei sheet") && !p.includes("magnet")) return MAT.pei;
   if (p.includes("yan-kapak")) return MAT.dock;
   if (p.includes("mgn")) return MAT.rail;
   if (/nema|17hs|ldo|motor/.test(p)) return MAT.motor;
-  if (/kule-kapak|corner-pin|magnet/.test(p)) return MAT.cap;
+  if (/kule-kapak|z-alt/.test(p)) return MAT.shell;             // white covers at the foot of the Z towers
+  if (/corner-pin|magnet/.test(p)) return MAT.cap;
   if (/alu-profile|alu-ext|z-axis-alu|x-alu|y-alu/.test(p)) return MAT.alu;
   if (/inject|kapak|cover|kasa|filament|heated|move face|fillet|lcd/.test(p)) return MAT.shell;
   if (/screw|vida|pulley|bearing|idler|kasnak/.test(p)) return MAT.dark;
@@ -362,7 +365,10 @@ loadModel().then((gltf) => {
   scene.add(root, zGroup, bedGroup);
   root.updateMatrixWorld(true);
   root.traverse((o) => {
-    const id = /^NAUO\d+/.exec(o.name); if (id && !byId[id[0]]) byId[id[0]] = o;
+    // ids come from the file's own node names ("NAUO78:part"); three.js strips the ":" from o.name
+    const at = gltf.parser.associations.get(o);
+    const raw = at && at.nodes !== undefined ? gltf.parser.json.nodes[at.nodes].name || "" : "";
+    const id = raw.split(":")[0]; if (id && !byId[id]) byId[id] = o;
     if (o.isMesh) {
       let path = "", n = o;
       while (n) { path += " " + n.name; n = n.parent; }
@@ -415,6 +421,15 @@ loadModel().then((gltf) => {
     head.traverse((o) => { if (!plugs[j] && /kablo/i.test(o.name)) plugs[j] = o; });
     if (plugs[j]) nudge(plugs[j], 0, -PLUG_DROP, 0);
   });
+  if (byId[SIDE_COVER_ID]) {
+    const m = new THREE.Group();
+    m.matrixAutoUpdate = false;
+    m.matrix.makeTranslation(2 * DOCK_MIRROR_X / 1000, 0, 0).multiply(new THREE.Matrix4().makeScale(-1, 1, 1));
+    zGroup.add(m);
+    const part = byId[SIDE_COVER_ID], copy = part.clone(true);
+    part.matrixWorld.decompose(copy.position, copy.quaternion, copy.scale);
+    m.add(copy);
+  }
   for (const pair of CAP_PAIRS) {
     const parts = pair.map((id) => byId[id]).filter(Boolean);
     if (!parts.length) continue;
