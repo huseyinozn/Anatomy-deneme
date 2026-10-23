@@ -11,7 +11,7 @@ const NAMES = namesFile ? JSON.parse(readFileSync(namesFile, "utf8")) : {};
 const unstep = (t) => t.replace(/\\X2\\([0-9A-Fa-f]+)\\X0\\/g, (_, hex) => hex.match(/.{4}/g).map((h) => String.fromCharCode(parseInt(h, 16))).join(""));
 const DROP = new Set([
   // copies parked far left of the machine in this older assembly
-  "NAUO380", "NAUO381", "NAUO382", "NAUO383", "NAUO384", "NAUO385", "NAUO386", "NAUO387", "NAUO388", "NAUO389", "NAUO390", "NAUO391", "NAUO392",
+  "NAUO380", "NAUO381", "NAUO382", "NAUO383", "NAUO384", "NAUO385", "NAUO386", "NAUO387", "NAUO388", "NAUO390", "NAUO391", "NAUO392",
   // four of the eight toolheads: the machine runs four
   "NAUO52", "NAUO53", "NAUO56", "NAUO57",
   // loose parts beyond the right end of the beam

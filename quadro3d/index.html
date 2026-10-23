@@ -101,6 +101,11 @@ const NOZZLE_Z = 176.15, PRINT_Z0 = 174.2, PEI_TOP = 31.0, NOZZLE_DROP = 14.2;
 const BED_IDS = ["NAUO341", "NAUO342", "NAUO313", "NAUO315", "NAUO347"];
 const Z_IDS = ["NAUO3", "NAUO257", "NAUO240", "NAUO260", "NAUO261"];
 const COLORS = ["#3e7bd6", "#d9d4c7", "#e5484d", "#e0a93b"];
+// This older export parks the 4.3" screen 600 mm off to the side with a copy of the base; put it back.
+const LCD_ID = "NAUO389", LCD_SHIFT_X = 600;
+// The filament holder only exists on one upright in the export; the product has it on both.
+const HOLDER_IDS = ["NAUO304", "NAUO305", "NAUO306", "NAUO311", "NAUO312"];
+const MIRROR_X = 28.5;                                           // mid-plane between the uprights
 
 // ---------- print job: each tool prints its own shape, in bed coordinates 0..300 ----------
 const poly = (cx, cy, r, n, rot) => Array.from({ length: n + 1 }, (_, i) => { const a = rot + (i / n) * Math.PI * 2; return [cx + r * Math.cos(a), cy + r * Math.sin(a)]; });
@@ -200,7 +205,21 @@ loadModel().then((gltf) => {
       o.material = materialFor(path);
     }
   });
-  const box = new THREE.Box3().setFromObject(root);
+  if (byId[LCD_ID]) {
+    const lcd = new THREE.Group(); scene.add(lcd); lcd.attach(byId[LCD_ID]); lcd.position.x = LCD_SHIFT_X / 1000;
+  }
+  const mirror = new THREE.Group();
+  mirror.matrixAutoUpdate = false;
+  mirror.matrix.makeTranslation(2 * MIRROR_X / 1000, 0, 0).multiply(new THREE.Matrix4().makeScale(-1, 1, 1));
+  scene.add(mirror);
+  for (const id of HOLDER_IDS) {
+    const part = byId[id];
+    if (!part) continue;
+    const copy = part.clone(true);
+    part.matrixWorld.decompose(copy.position, copy.quaternion, copy.scale);
+    mirror.add(copy);
+  }
+  const box = new THREE.Box3().setFromObject(scene);
   box.getCenter(center); radius = box.getSize(new THREE.Vector3()).length() / 2;
   for (const id of BED_IDS) if (byId[id]) bedGroup.attach(byId[id]);
   for (const id of Z_IDS) if (byId[id]) zGroup.attach(byId[id]);
