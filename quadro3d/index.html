@@ -60,26 +60,25 @@ button[data-play] { min-width: 104px; font-weight: 600; }
   <div class="desk">
     <div class="row">
       <button id="play" data-play aria-pressed="true">Durdur</button>
-      <span class="label">Sıradaki kafa</span>
-      <button data-pick="0">T0</button><button data-pick="1">T1</button><button data-pick="2">T2</button><button data-pick="3">T3</button>
-      <button id="clear">İzleri sil</button>
+      <button id="restart">Baştan başlat</button>
+      <button id="skip">10 katman ileri</button>
+      <span class="label" id="stats" aria-live="off"></span>
     </div>
     <div class="heads" id="heads"></div>
     <p class="change" id="change">Takım değişimi bekleniyor…</p>
     <div class="row">
       <span class="label">Görünüm</span>
-      <button data-view="front">Önden</button><button data-view="iso">İzometrik</button><button data-view="side">Yandan</button><button data-view="top">Üstten</button><button data-view="dock">Qdock yakın</button>
+      <button data-view="front">Önden</button><button data-view="iso">İzometrik</button><button data-view="side">Yandan</button><button data-view="top">Üstten</button><button data-view="dock">Qdock yakın</button><button data-view="part">Parça yakın</button>
     </div>
     <div class="sliders">
-      <label>Animasyon hızı <output></output><input id="s-scale" type="range" data-cfg="scale" min="0.05" max="1" step="0.05"></label>
+      <label>Animasyon hızı <output></output><input id="s-scale" type="range" data-cfg="scale" min="0.05" max="10" step="0.05"></label>
       <label>Baskı hızı (mm/s) <output></output><input id="s-print" type="range" data-cfg="print" min="30" max="400" step="10"></label>
       <label>X maks. hız (mm/s) <output></output><input id="s-vx" type="range" data-cfg="vx" min="100" max="1500" step="50"></label>
       <label>X ivme (mm/s²) <output></output><input id="s-ax" type="range" data-cfg="ax" min="500" max="20000" step="500"></label>
       <label>Y tabla maks. hız (mm/s) <output></output><input id="s-vy" type="range" data-cfg="vy" min="100" max="1500" step="50"></label>
       <label>Y tabla ivme (mm/s²) <output></output><input id="s-ay" type="range" data-cfg="ay" min="500" max="20000" step="500"></label>
-      <label>Z yüksekliği (mm) <output></output><input id="s-z" type="range" data-cfg="z" min="0" max="300" step="1"></label>
     </div>
-    <p class="note">Geometri, SolidWorks montajının (Quadro_19_05-12-07) STEP çıktısından geliyor; web için sadeleştirildi. Bu eski revizyonda 8 kafa vardı, ürüne uygun olarak 4'ü gösteriliyor. Hareket mantığı benim modelim: kafalar birbirini geçemez; Tool k basarken soldakiler sol, sağdakiler sağ Qdock'a çekilir; takım değişiminde 4 kafa ve tabla aynı ölçeklenmiş trapez profiliyle aynı anda başlayıp durur. Hız ve ivme değerleri varsayımdır, Quadro'nun kendi algoritması değildir.</p>
+    <p class="note">Geometri, SolidWorks montajının (Quadro_19_05-12-07) STEP çıktısından geliyor; web için sadeleştirildi. Bu eski revizyonda 8 kafa vardı, ürüne uygun olarak 4'ü gösteriliyor. Basılan parça Snapmaker Space'teki "Alignment Test Cube" (CC0): 3MF dosyası giriş istediği için sayfadaki fotoğraflardan yeniden kuruldu: 20 mm küp, 2 × 2 blok, 4 kat, katman 0,2 mm, iki çevre ve düz dolgu. Hareket mantığı benim modelim: kafalar birbirini geçemez; Tool k basarken soldakiler sol, sağdakiler sağ Qdock'a çekilir; takım değişiminde dört kafa ve tabla aynı ölçeklenmiş trapez profiliyle aynı anda başlayıp durur. Hız ve ivme değerleri varsayımdır.</p>
   </div>
 </div>
 
@@ -100,22 +99,45 @@ const PRINT_SX0 = -178.5;                                       // print area le
 const NOZZLE_Z = 176.15, PRINT_Z0 = 174.2, PEI_TOP = 31.0, NOZZLE_DROP = 14.2;
 const BED_IDS = ["NAUO341", "NAUO342", "NAUO313", "NAUO315", "NAUO347"];
 const Z_IDS = ["NAUO3", "NAUO257", "NAUO240", "NAUO260", "NAUO261"];
-const COLORS = ["#3e7bd6", "#d9d4c7", "#e5484d", "#e0a93b"];
+const COLORS = ["#2f7fe6", "#e5484d", "#2fa868", "#f2c230"];   // Tool 0 blue, 1 red, 2 green, 3 yellow
 // This older export parks the 4.3" screen 600 mm off to the side with a copy of the base; put it back.
 const LCD_ID = "NAUO389", LCD_SHIFT_X = 600;
 // The filament holder only exists on one upright in the export; the product has it on both.
 const HOLDER_IDS = ["NAUO304", "NAUO305", "NAUO306", "NAUO311", "NAUO312"];
 const MIRROR_X = 28.5;                                           // mid-plane between the uprights
 
-// ---------- print job: each tool prints its own shape, in bed coordinates 0..300 ----------
-const poly = (cx, cy, r, n, rot) => Array.from({ length: n + 1 }, (_, i) => { const a = rot + (i / n) * Math.PI * 2; return [cx + r * Math.cos(a), cy + r * Math.sin(a)]; });
-const SHAPES = [[[45, 45], [130, 45], [130, 130], [45, 130], [45, 45]], poly(215, 88, 45, 48, Math.PI), poly(88, 215, 50, 3, -Math.PI / 2), poly(215, 215, 47, 6, 0)];
-const PROGRAM = [1, 3, 0, 2];
+// ---------- print job: the "Alignment Test Cube" (Snapmaker Space, CC0), rebuilt from its pictures ----------
+// A 20 mm cube of 2 x 2 blocks (10 mm) in 4 tiers (5 mm). Every tier holds all four colours; they rotate tier to tier.
+const CUBE = 20, BLOCK = 10, TIER = 5, LAYER_H = 0.2, LINE_W = 0.45;
+const LAYERS = Math.round(CUBE / LAYER_H), PER_TIER = Math.round(TIER / LAYER_H);
+const CUBE_X0 = 140, CUBE_Y0 = 140;                              // cube corner in bed coordinates (centred on the 300 mm bed)
+const QUADS = [[0, 0], [1, 0], [1, 1], [0, 1]];                  // the 2 x 2 grid, walked round
+const toolAt = (tier, q) => (q + tier) % 4;
+const quadOf = (tier, tool) => (tool - tier + 4) % 4;
+function blockPath(q, layer) {
+  const [qx, qy] = QUADS[q], x0 = CUBE_X0 + qx * BLOCK, y0 = CUBE_Y0 + qy * BLOCK, pts = [];
+  for (const inset of [LINE_W / 2, LINE_W * 1.5]) {               // two perimeters
+    const a = x0 + inset, b = x0 + BLOCK - inset, c = y0 + inset, d = y0 + BLOCK - inset;
+    pts.push([a, c], [b, c], [b, d], [a, d], [a, c]);
+  }
+  const lo = LINE_W * 2.5, n = Math.floor((BLOCK - 2 * lo) / LINE_W) + 1;
+  for (let i = 0; i < n; i++) {                                   // rectilinear infill, direction alternates by layer
+    const t = lo + i * LINE_W, [u, v] = i % 2 ? [BLOCK - lo, lo] : [lo, BLOCK - lo];
+    if (layer % 2 === 0) pts.push([x0 + t, y0 + u], [x0 + t, y0 + v]); else pts.push([x0 + u, y0 + t], [x0 + v, y0 + t]);
+  }
+  return pts;
+}
+// Order of tools in a layer: carry on with the tool that finished the last layer, then the others in turn.
+function layerJobs(layer, first) {
+  const tier = Math.floor(layer / PER_TIER), start = first < 0 ? 0 : first;
+  return [0, 1, 2, 3].map((k) => (start + k) % 4).map((tool) => ({ tool, q: quadOf(tier, tool) }));
+}
 const lengthOf = (p) => p.slice(1).reduce((s, q, i) => s + Math.hypot(q[0] - p[i][0], q[1] - p[i][1]), 0);
 const pointAlong = (p, d) => { for (let i = 1; i < p.length; i++) { const L = Math.hypot(p[i][0] - p[i - 1][0], p[i][1] - p[i - 1][1]); if (d <= L) { const f = L ? d / L : 0; return [p[i - 1][0] + (p[i][0] - p[i - 1][0]) * f, p[i - 1][1] + (p[i][1] - p[i - 1][1]) * f]; } d -= L; } return p[p.length - 1]; };
 
-const cfg = { vx: 600, ax: 6000, vy: 400, ay: 4000, print: 150, scale: 0.5, z: 0 };
-let sx = SX0.slice(), ny = 2, active = -1, jobAt = 0, queued = null, phase = { kind: "idle" };
+const cfg = { vx: 600, ax: 7000, vy: 400, ay: 7000, print: 350, scale: 1 };
+let sx = SX0.slice(), ny = 2, active = -1, phase = { kind: "idle" };
+let layer = 0, jobs = layerJobs(0, -1), jobAt = 0, done = new Set(), stats = { changes: 0, time: 0 };
 let playing = !matchMedia("(prefers-reduced-motion: reduce)").matches;
 const fmt = (v, n = 0) => v.toFixed(n).replace(".", ",").replace("-", "−");
 
@@ -251,12 +273,13 @@ function setActive(j) {
 }
 
 // ---------- views ----------
-const VIEWS = { front: [180, 8, 1.15], iso: [215, 22, 1.25], side: [270, 12, 1.25], top: [180, 80, 1.2], dock: [150, 15, 0.6] };
+const VIEWS = { front: [180, 8, 1.15], iso: [215, 22, 1.25], side: [270, 12, 1.25], top: [180, 80, 1.2], dock: [150, 15, 0.6], part: [205, 28, 0.2] };
 let tween = null;
 function setView(name, instant) {
   const [az, el, k] = VIEWS[name];
   const a = THREE.MathUtils.degToRad(az), e = THREE.MathUtils.degToRad(el), d = radius * 2.4 * k;
-  const target = name === "dock" ? center.clone().add(new THREE.Vector3(0.29, 0.02, -0.05)) : center.clone();
+  const target = name === "dock" ? center.clone().add(new THREE.Vector3(0.29, 0.02, -0.05))
+    : name === "part" ? new THREE.Vector3(-(PRINT_SX0 + CUBE_X0 + CUBE / 2) / 1000, (PEI_TOP + 12) / 1000, NOZZLE_Z / 1000) : center.clone();
   const pos = target.clone().add(new THREE.Vector3(Math.sin(a) * Math.cos(e) * d, Math.sin(e) * d, Math.cos(a) * Math.cos(e) * d));
   if (instant) { camera.position.copy(pos); controls.target.copy(target); controls.update(); dirty = true; return; }
   tween = { t: 0, p0: camera.position.clone(), p1: pos, t0: controls.target.clone(), t1: target };
@@ -269,68 +292,119 @@ const commonT = (axes, f) => Math.max(...axes.map(({ d, v, a }) => { d = Math.ab
 function ease(t, T, f) { if (T <= 0 || t >= T) return 1; if (t <= 0) return 0; const ta = f * T, vn = 1 / (T - ta), an = vn / ta; if (t < ta) return 0.5 * an * t * t; if (t < T - ta) return 0.5 * an * ta * ta + vn * (t - ta); return 1 - 0.5 * an * (T - t) * (T - t); }
 
 const changeEl = document.getElementById("change");
-function startToolchange(next) {
-  const [px, py] = SHAPES[next][0];
+function startMove(next, [px, py]) {
   const to = sx.map((_, j) => (j < next ? LP[j] : j > next ? RP[j - 1] : PRINT_SX0 + px));
   const axes = to.map((t, j) => ({ d: t - sx[j], v: cfg.vx, a: cfg.ax })).concat([{ d: py - ny, v: cfg.vy, a: cfg.ay }]);
   const lead = axes.map((x) => solo(x.d, x.v, x.a)).reduce((m, s) => (s.T > m.T ? s : m), { T: 0, f: 0.5 });
   const T = commonT(axes, lead.f), vn = T > 0 ? 1 / (T - lead.f * T) : 0;
-  phase = { kind: "change", t: 0, T, f: lead.f, from: sx.slice(), to, y0: ny, y1: py, prev: active, next };
-  active = next; setActive(next);
-  const names = ["T0", "T1", "T2", "T3", "Y tabla"];
-  const moves = axes.map((x, i) => (Math.abs(x.d) < 0.5 ? null : names[i] + " " + (x.d > 0 ? "+" : "") + fmt(x.d) + " mm (tepe " + fmt(Math.abs(x.d) * vn) + " mm/s)")).filter(Boolean);
-  changeEl.innerHTML = "<b>Son eşzamanlı hareket: " + (phase.prev < 0 ? "başlangıç" : "T" + phase.prev) + " → T" + next + " · " + fmt(T, 2) + " s</b><br>" + moves.join(" · ");
-}
-function startPrint() {
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(3 * 600), 3));
-  geo.setDrawRange(0, 0);
-  const line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: COLORS[active] }));
-  trails.add(line);
-  if (trails.children.length > 8) { const old = trails.children[0]; trails.remove(old); old.geometry.dispose(); }
-  phase = { kind: "print", s: 0, L: lengthOf(SHAPES[active]), line, n: 0, last: null };
+  const swap = next !== active;
+  phase = { kind: "change", t: 0, T, f: lead.f, from: sx.slice(), to, y0: ny, y1: py, prev: active, next, swap };
+  if (swap) {
+    if (active >= 0) stats.changes++;
+    active = next; setActive(next);
+    const names = ["T0", "T1", "T2", "T3", "Y tabla"];
+    const moves = axes.map((x, i) => (Math.abs(x.d) < 0.5 ? null : names[i] + " " + (x.d > 0 ? "+" : "") + fmt(x.d) + " mm (tepe " + fmt(Math.abs(x.d) * vn) + " mm/s)")).filter(Boolean);
+    changeEl.innerHTML = "<b>Son takım değişimi: " + (phase.prev < 0 ? "başlangıç" : "T" + phase.prev) + " → T" + next + " · " + fmt(T, 2) + " s</b><br>" + moves.join(" · ");
+  }
 }
 function nextJob() {
-  let next;
-  if (queued !== null) { next = queued; queued = null; } else { next = PROGRAM[jobAt]; jobAt = (jobAt + 1) % PROGRAM.length; }
-  startToolchange(next);
+  if (jobAt >= jobs.length) {
+    if (layer + 1 >= LAYERS) { phase = { kind: "done" }; setPlaying(false); return; }
+    layer++; done.clear(); jobs = layerJobs(layer, active); jobAt = 0;
+  }
+  const job = jobs[jobAt++];
+  const path = blockPath(job.q, layer);
+  phase = null;
+  startMove(job.tool, path[0]);
+  phase.job = job; phase.path = path;
+}
+function startPrint(job, path) {
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(3 * (path.length * 30 + 10)), 3));
+  geo.setDrawRange(0, 0);
+  const line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: COLORS[job.tool] }));
+  trails.add(line);
+  phase = { kind: "print", s: 0, L: lengthOf(path), path, job, line, n: 0 };
+  addTrailPoint(...path[0]);
 }
 function addTrailPoint(px, py) {
   const { line } = phase, pos = line.geometry.attributes.position;
   if (phase.n >= pos.count) return;
-  pos.setXYZ(phase.n++, -(PRINT_SX0 + px) / 1000, (PEI_TOP + 0.3) / 1000, (PRINT_Z0 + py) / 1000);
+  pos.setXYZ(phase.n++, -(PRINT_SX0 + px) / 1000, (PEI_TOP + (layer + 1) * LAYER_H) / 1000, (PRINT_Z0 + py) / 1000);
   pos.needsUpdate = true; line.geometry.setDrawRange(0, phase.n);
 }
+function finishBlock() {
+  trails.remove(phase.line); phase.line.geometry.dispose();
+  done.add(phase.job.q); growBlocks();
+}
 function step(dt) {
+  stats.time += dt;
   if (phase.kind === "idle") return nextJob();
+  if (phase.kind === "done") return;
   if (phase.kind === "change") {
     phase.t = Math.min(phase.T, phase.t + dt);
     const u = ease(phase.t, phase.T, phase.f);
     sx = phase.from.map((x0, j) => x0 + (phase.to[j] - x0) * u);
     ny = phase.y0 + (phase.y1 - phase.y0) * u;
-    if (phase.t >= phase.T) { startPrint(); addTrailPoint(...SHAPES[active][0]); }
+    if (phase.t >= phase.T) startPrint(phase.job, phase.path);
     return;
   }
+  const before = phase.s;
   phase.s = Math.min(phase.L, phase.s + cfg.print * dt);
-  const [px, py] = pointAlong(SHAPES[active], phase.s);
+  // sample the path every 0.5 mm so corners stay sharp at high speed
+  for (let d = Math.ceil(before / 0.5) * 0.5; d < phase.s; d += 0.5) addTrailPoint(...pointAlong(phase.path, d));
+  const [px, py] = pointAlong(phase.path, phase.s);
   sx[active] = PRINT_SX0 + px; ny = py;
   addTrailPoint(px, py);
-  if (phase.s >= phase.L) nextJob();
+  if (phase.s >= phase.L) { finishBlock(); nextJob(); }
+}
+// the printed cube: one box per block, grown as its layers are finished
+const part = new THREE.Group();
+bedGroup.add(part);
+const blocks = [];
+for (let tier = 0; tier < 4; tier++) for (let q = 0; q < 4; q++) {
+  const [qx, qy] = QUADS[q];
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(BLOCK / 1000, 1, BLOCK / 1000), new THREE.MeshStandardMaterial({ color: COLORS[toolAt(tier, q)], roughness: 0.55 }));
+  mesh.position.set(-(PRINT_SX0 + CUBE_X0 + qx * BLOCK + BLOCK / 2) / 1000, 0, (PRINT_Z0 + CUBE_Y0 + qy * BLOCK + BLOCK / 2) / 1000);
+  mesh.visible = false;
+  part.add(mesh); blocks.push({ tier, q, mesh });
+}
+function growBlocks() {
+  for (const { tier, q, mesh } of blocks) {
+    const below = tier * PER_TIER;
+    let n = Math.max(0, Math.min(PER_TIER, layer - below + (done.has(q) && Math.floor(layer / PER_TIER) === tier ? 1 : 0)));
+    if (layer >= below + PER_TIER) n = PER_TIER;
+    mesh.visible = n > 0;
+    if (n > 0) { const h = n * LAYER_H; mesh.scale.y = h / 1000; mesh.position.y = (PEI_TOP + tier * TIER + h / 2) / 1000; }
+  }
+  dirty = true;
+}
+function restart(toLayer = 0) {
+  for (const l of [...trails.children]) { trails.remove(l); l.geometry.dispose(); }
+  layer = toLayer; done.clear(); jobs = layerJobs(layer, active); jobAt = 0; phase = { kind: "idle" };
+  if (toLayer === 0) stats = { changes: 0, time: 0 };
+  growBlocks(); draw(); run();
 }
 function draw() {
   headGroups.forEach((g, j) => (g.position.x = -(sx[j] - SX0[j]) / 1000));
   bedGroup.position.z = (NOZZLE_Z - (PRINT_Z0 + ny)) / 1000;
-  zGroup.position.y = (cfg.z - NOZZLE_DROP) / 1000;
+  zGroup.position.y = ((layer + 1) * LAYER_H - NOZZLE_DROP) / 1000;
   dirty = true;
 }
 
 // ---------- readout ----------
-const readout = document.getElementById("readout"), headsEl = document.getElementById("heads");
+const readout = document.getElementById("readout"), headsEl = document.getElementById("heads"), statsEl = document.getElementById("stats");
 function slotName(x) { for (let i = 0; i < 3; i++) { if (Math.abs(x - LP[i]) < 0.5) return "Qdock L" + (i + 1); if (Math.abs(x - RP[i]) < 0.5) return "Qdock R" + (i + 1); } return null; }
 function report() {
-  let text = "hazır";
-  if (phase.kind === "change") text = "Takım değişimi " + (phase.prev < 0 ? "başlangıç" : "T" + phase.prev) + " → T" + phase.next + " · " + fmt(phase.t, 2) + " / " + fmt(phase.T, 2) + " s";
-  else if (phase.kind === "print") text = "T" + active + " baskıda · X " + fmt(sx[active] - PRINT_SX0) + " · Y " + fmt(ny) + " · Z " + fmt(cfg.z) + " mm";
+  const z = fmt((layer + 1) * LAYER_H, 1);
+  let text = "Katman " + (layer + 1) + " / " + LAYERS + " · ";
+  if (phase.kind === "change") text += (phase.swap ? "Takım değişimi " + (phase.prev < 0 ? "başlangıç" : "T" + phase.prev) + " → T" + phase.next : "T" + active + " sonraki bloğa") + " · " + fmt(phase.t, 2) + " / " + fmt(phase.T, 2) + " s";
+  else if (phase.kind === "print") text += "T" + active + " baskıda · X " + fmt(sx[active] - PRINT_SX0) + " · Y " + fmt(ny) + " · Z " + z + " mm";
+  else if (phase.kind === "done") text = "Baskı bitti · " + LAYERS + " katman";
+  else text += "hazır";
+  const m = Math.floor(stats.time / 60), sec = Math.floor(stats.time % 60);
+  const st = stats.changes + " takım değişimi · simülasyon süresi " + m + " dk " + String(sec).padStart(2, "0") + " sn";
+  if (statsEl.textContent !== st) statsEl.textContent = st;
   if (readout.textContent !== text) readout.innerHTML = "<b>" + text + "</b>";
   const html = sx.map((x, j) => {
     const where = j === active && phase.kind === "print" ? "baskıda" : slotName(x) || (phase.kind === "change" ? "hareket" : "—");
@@ -342,7 +416,7 @@ function report() {
 // ---------- loop ----------
 let last = 0, frame = 0;
 function tick(now) {
-  const dt = last ? Math.min((now - last) / 1000, 1 / 20) : 1 / 60;
+  const dt = last ? Math.min((now - last) / 1000, 0.1) : 1 / 60;
   last = now;
   if (playing && ready) { step(dt * cfg.scale); draw(); }
   if (tween) {
@@ -364,21 +438,14 @@ controls.addEventListener("change", run);
 const playBtn = document.getElementById("play");
 function setPlaying(on) { playing = on; playBtn.textContent = on ? "Durdur" : "Başlat"; playBtn.setAttribute("aria-pressed", String(on)); run(); }
 playBtn.addEventListener("click", () => setPlaying(!playing));
-document.querySelectorAll("[data-pick]").forEach((b) => b.addEventListener("click", () => {
-  queued = Number(b.dataset.pick);
-  if (phase.kind === "print") nextJob();
-  setPlaying(true);
-}));
-document.getElementById("clear").addEventListener("click", () => {
-  for (const l of [...trails.children]) if (!(phase.kind === "print" && l === phase.line)) { trails.remove(l); l.geometry.dispose(); }
-  dirty = true; run();
-});
+document.getElementById("restart").addEventListener("click", () => { restart(0); setPlaying(true); });
+document.getElementById("skip").addEventListener("click", () => { if (phase.kind !== "done") { restart(Math.min(LAYERS - 1, layer + 10)); setPlaying(true); } });
 document.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => setView(b.dataset.view)));
 document.querySelectorAll("input[data-cfg]").forEach((input) => {
   const key = input.dataset.cfg, out = input.parentElement.querySelector("output");
   const show = () => (out.textContent = key === "scale" ? fmt(cfg[key], 2) + "×" : fmt(cfg[key]));
   input.value = cfg[key]; show();
-  input.addEventListener("input", () => { cfg[key] = Number(input.value); show(); if (key === "z") { draw(); run(); } });
+  input.addEventListener("input", () => { cfg[key] = Number(input.value); show(); });
 });
 setPlaying(playing);
 report();
