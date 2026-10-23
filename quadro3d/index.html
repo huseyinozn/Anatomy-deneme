@@ -526,31 +526,58 @@ function addRoom() {
   const p0 = new THREE.Vector3(lampX, top + 0.02, lampZ), p1 = new THREE.Vector3(lampX, top + 0.42, lampZ - 0.08), p2 = new THREE.Vector3(lampX + 0.02, top + 0.36, lampZ - 0.36);
   rod(p0, p1, 0.008, dark); rod(p1, p2, 0.008, dark);
   const head = cyl(0.022, 0.055, 0.09, dark, p2.x, p2.y - 0.035, p2.z); head.rotation.x = 0.35;
-  const lx = dk.x0 + 0.18, lz = dk.z0 + 0.2;
-  box(0.32, 0.016, 0.22, mat(0x8e9298, 0.35, 0.6), lx, top + 0.008, lz);
-  const scr = box(0.32, 0.21, 0.008, mat(0x8e9298, 0.35, 0.6), lx, top + 0.11, lz + 0.12); scr.rotation.x = -0.25;
-  const disp = new THREE.Mesh(new THREE.PlaneGeometry(0.29, 0.18), new THREE.MeshBasicMaterial({ color: 0x1f3a5c, toneMapped: false }));
-  disp.position.set(0, 0, -0.0045); disp.rotation.y = Math.PI; scr.add(disp);
+  laptop(dk.x0 + 0.18, top, dk.z0 + 0.2);
   cyl(0.04, 0.04, 0.095, mat(0xffffff, 0.3), dk.x1 - 0.14, top + 0.0475, dk.z0 + 0.16);
-  spool(dk.x0 + 0.1, top + 0.1, dk.z1 - 0.16, 0x2fa868, 0.1); spool(dk.x0 + 0.19, top + 0.1, dk.z1 - 0.16, 0xe9e6df, 0.1);
+  spool(dk.x0 + 0.14, top, dk.z1 - 0.15, 0x2fa868, 0.1, true); spool(dk.x0 + 0.14, top + 0.068, dk.z1 - 0.15, 0xe9e6df, 0.1, true);
   chair(cx + 0.38, floor, dk.z0 - 0.26);
   const y = top + 0.0008;
   const deskLabel = textPlane(["IKEA LINNMON desk", "150 × 75 cm"], 0.2, "#6b6d72");
   deskLabel.rotation.set(-Math.PI / 2, 0, Math.PI); deskLabel.position.set((fp.x1 + dk.x1) / 2 + 0.02, y + 0.0004, cz + 0.05); roomGroup.add(deskLabel);
   scene.add(roomGroup);
 }
-function spool(x, y, z, color, r) {
+// a filament spool; standing on its rim (axis along x), or lying on a flange (axis up, y = the surface it rests on)
+function spool(x, y, z, color, r, lying = false) {
   const g = new THREE.Group(); g.position.set(x, y, z); roomGroup.add(g);
-  const disc = (rr, w, m, dx) => { const o = new THREE.Mesh(new THREE.CylinderGeometry(rr, rr, w, 48), m); o.rotation.z = Math.PI / 2; o.position.x = dx; g.add(o); };
+  const disc = (rr, w, m, off) => {
+    const o = new THREE.Mesh(new THREE.CylinderGeometry(rr, rr, w, 48), m);
+    if (lying) o.position.y = 0.033 + off; else { o.rotation.z = Math.PI / 2; o.position.x = off; }
+    g.add(o);
+  };
   const fl = mat(0xcdb48e, 0.8);
-  disc(r, 0.004, fl, -0.03); disc(r, 0.004, fl, 0.03); disc(r * 0.8, 0.056, mat(color, 0.5), 0); disc(r * 0.28, 0.066, mat(0xf1efe9, 0.6), 0);
+  disc(r, 0.004, fl, -0.031); disc(r, 0.004, fl, 0.031); disc(r * 0.8, 0.058, mat(color, 0.5), 0); disc(r * 0.28, 0.066, mat(0xf1efe9, 0.6), 0);
 }
+function laptop(x, top, z) {
+  const body = mat(0xb9bdc2, 0.35, 0.6), keys = mat(0x2a2c30, 0.6), w = 0.32, d = 0.22, t = 0.016;
+  box(w, t, d, body, x, top + t / 2, z);
+  box(w - 0.03, 0.002, d * 0.48, keys, x, top + t + 0.001, z + 0.03);              // keyboard well
+  box(0.11, 0.0015, 0.065, mat(0xa9adb2, 0.3, 0.5), x, top + t + 0.0008, z - 0.065); // trackpad
+  const hinge = new THREE.Group(); hinge.position.set(x, top + t, z + d / 2 - 0.004); hinge.rotation.x = 0.26; roomGroup.add(hinge);
+  const lid = new THREE.Mesh(new THREE.BoxGeometry(w, 0.21, 0.007), body); lid.position.set(0, 0.105, 0); hinge.add(lid);
+  const disp = new THREE.Mesh(new THREE.PlaneGeometry(w - 0.025, 0.185), new THREE.MeshBasicMaterial({ color: 0x1f3a5c, toneMapped: false }));
+  disp.position.set(0, 0.108, -0.0037); disp.rotation.y = Math.PI; hinge.add(disp);
+  rod(new THREE.Vector3(x - w / 2 + 0.03, top + t, z + d / 2 - 0.004), new THREE.Vector3(x + w / 2 - 0.03, top + t, z + d / 2 - 0.004), 0.005, keys);   // hinge barrel
+}
+// office chair facing the desk (+z): five-star base on casters, gas lift, seat, backrest on a spine, armrests
 function chair(x, floor, z) {
-  const blk = mat(0x2a2c30, 0.6), metal = mat(0x9a9ea3, 0.35, 0.7);
-  for (let i = 0; i < 5; i++) { const a = (i / 5) * Math.PI * 2; const leg = box(0.3, 0.025, 0.04, metal, x + Math.cos(a) * 0.15, floor + 0.07, z + Math.sin(a) * 0.15); leg.rotation.y = -a; cyl(0.025, 0.025, 0.04, blk, x + Math.cos(a) * 0.3, floor + 0.025, z + Math.sin(a) * 0.3); }
-  cyl(0.025, 0.025, 0.33, metal, x, floor + 0.25, z);
-  box(0.48, 0.07, 0.46, blk, x, floor + 0.46, z);
-  const back = box(0.44, 0.5, 0.05, blk, x, floor + 0.78, z - 0.24); back.rotation.x = 0.12;
+  const blk = mat(0x2a2c30, 0.65), metal = mat(0x9a9ea3, 0.35, 0.7), V = (a, b, c) => new THREE.Vector3(a, b, c);
+  const hub = V(x, floor + 0.11, z);
+  cyl(0.045, 0.045, 0.05, metal, x, floor + 0.11, z);
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * Math.PI * 2 + 0.3, ex = x + Math.cos(a) * 0.3, ez = z + Math.sin(a) * 0.3;
+    rod(hub, V(ex, floor + 0.07, ez), 0.016, metal);
+    rod(V(ex, floor + 0.07, ez), V(ex, floor + 0.045, ez), 0.008, metal);
+    const wheel = new THREE.Mesh(new THREE.SphereGeometry(0.026, 20, 14), blk); wheel.position.set(ex, floor + 0.026, ez); roomGroup.add(wheel);
+  }
+  rod(V(x, floor + 0.13, z), V(x, floor + 0.42, z), 0.022, metal);          // gas lift
+  box(0.26, 0.03, 0.26, blk, x, floor + 0.43, z);                             // tilt plate
+  box(0.48, 0.07, 0.46, blk, x, floor + 0.48, z);                             // seat
+  rod(V(x, floor + 0.44, z - 0.12), V(x, floor + 0.5, z - 0.27), 0.022, metal);   // spine
+  rod(V(x, floor + 0.5, z - 0.27), V(x, floor + 0.62, z - 0.28), 0.022, metal);
+  const back = box(0.44, 0.48, 0.055, blk, x, floor + 0.84, z - 0.28); back.rotation.x = -0.1;
+  for (const s of [-1, 1]) {                                                  // armrests
+    rod(V(x + s * 0.225, floor + 0.47, z - 0.02), V(x + s * 0.225, floor + 0.66, z - 0.02), 0.012, metal);
+    box(0.06, 0.025, 0.25, blk, x + s * 0.225, floor + 0.672, z - 0.02);
+  }
 }
 document.getElementById("room-toggle").addEventListener("click", (e) => {
   roomGroup.visible = !roomGroup.visible; e.target.textContent = roomGroup.visible ? "Odayı gizle" : "Odayı göster"; dirty = true; run();
