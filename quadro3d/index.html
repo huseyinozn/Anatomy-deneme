@@ -112,8 +112,6 @@ const SIDE_COVER_ID = "NAUO78", DOCK_MIRROR_X = 29;
 const HIDE_IDS = ["NAUO34", "NAUO50",                         // + a flat idler floating under the beam
   // small screws left on the beam at the export's head positions, four per side
   "NAUO16", "NAUO17", "NAUO18", "NAUO19", "NAUO20", "NAUO21", "NAUO22", "NAUO23", "NAUO24", "NAUO25", "NAUO26", "NAUO27"];
-// Each head of this revision still carries a 50 mm radial fan assembly hanging below the back of the cover.
-const HEAD_HIDE = /fan-fanduct-montaj/i;
 // The screen hinges on its gear (axis along x); users tilt it to 45 degrees.
 const LCD_HINGE = [-30.5, 51.5], LCD_TILT = 45;
 // Qdock nozzle closers: spring-loaded silicone caps, one per slot, pressed down when a nozzle parks on them.
@@ -428,7 +426,7 @@ loadModel().then((gltf) => {
     const led = new THREE.Mesh(new THREE.BoxGeometry(0.016, 0.003, 0.0008), new THREE.MeshBasicMaterial({ color: COLORS[j] }));
     led.position.set((hb.min.x + hb.max.x) / 2, hb.max.y - 0.032, hb.min.z - 0.0005);
     g.add(led);
-    head.traverse((o) => { if (!plugs[j] && /kablo/i.test(o.name)) plugs[j] = o; if (HEAD_HIDE.test(o.name)) o.visible = false; });
+    head.traverse((o) => { if (!plugs[j] && /kablo/i.test(o.name)) plugs[j] = o; });
     if (plugs[j]) nudge(plugs[j], 0, -PLUG_DROP, 0);
   });
   if (byId[SIDE_COVER_ID]) {
