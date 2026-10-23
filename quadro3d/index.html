@@ -527,7 +527,7 @@ function addRoom() {
   rod(p0, p1, 0.008, dark); rod(p1, p2, 0.008, dark);
   const head = cyl(0.022, 0.055, 0.09, dark, p2.x, p2.y - 0.035, p2.z); head.rotation.x = 0.35;
   laptop(dk.x0 + 0.18, top, dk.z0 + 0.2);
-  cyl(0.04, 0.04, 0.095, mat(0xffffff, 0.3), dk.x1 - 0.14, top + 0.0475, dk.z0 + 0.16);
+  mug(dk.x1 - 0.14, top, dk.z0 + 0.16);
   spool(dk.x0 + 0.14, top, dk.z1 - 0.15, 0x2fa868, 0.1, true); spool(dk.x0 + 0.14, top + 0.068, dk.z1 - 0.15, 0xe9e6df, 0.1, true);
   chair(cx + 0.38, floor, dk.z0 - 0.26);
   const y = top + 0.0008;
@@ -545,6 +545,20 @@ function spool(x, y, z, color, r, lying = false) {
   };
   const fl = mat(0xcdb48e, 0.8);
   disc(r, 0.004, fl, -0.031); disc(r, 0.004, fl, 0.031); disc(r * 0.8, 0.058, mat(color, 0.5), 0); disc(r * 0.28, 0.066, mat(0xf1efe9, 0.6), 0);
+}
+// a ceramic mug: hollow body turned from a wall profile, a handle, and coffee inside
+function mug(x, top, z) {
+  const g = new THREE.Group(); g.position.set(x, top, z); g.rotation.y = 2.6; roomGroup.add(g);   // handle towards the room
+  const P = (r, y) => new THREE.Vector2(r, y);
+  const wall = [P(0, 0), P(0.036, 0), P(0.039, 0.003), P(0.04, 0.012), P(0.04, 0.094), P(0.0385, 0.096), P(0.0365, 0.094), P(0.0355, 0.012), P(0.032, 0.007), P(0, 0.007)];
+  const ceramic = new THREE.MeshStandardMaterial({ color: 0xf6f5f1, roughness: 0.28 });
+  g.add(new THREE.Mesh(new THREE.LatheGeometry(wall, 64), ceramic));
+  const coffee = new THREE.Mesh(new THREE.CircleGeometry(0.0356, 48), new THREE.MeshStandardMaterial({ color: 0x2b1709, roughness: 0.15, metalness: 0.1 }));
+  coffee.rotation.x = -Math.PI / 2; coffee.position.y = 0.078; g.add(coffee);
+  const crema = new THREE.Mesh(new THREE.RingGeometry(0.03, 0.0356, 48), new THREE.MeshStandardMaterial({ color: 0x8a5a33, roughness: 0.4 }));
+  crema.rotation.x = -Math.PI / 2; crema.position.y = 0.0782; g.add(crema);
+  const handle = new THREE.Mesh(new THREE.TorusGeometry(0.025, 0.0065, 14, 32, Math.PI), ceramic);
+  handle.rotation.z = -Math.PI / 2; handle.position.set(0.039, 0.05, 0); g.add(handle);
 }
 function laptop(x, top, z) {
   const body = mat(0xb9bdc2, 0.35, 0.6), keys = mat(0x2a2c30, 0.6), w = 0.32, d = 0.22, t = 0.016;
