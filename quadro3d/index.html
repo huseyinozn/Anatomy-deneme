@@ -69,7 +69,7 @@ button[data-play] { min-width: 104px; font-weight: 600; }
     <p class="change" id="change">Takım değişimi bekleniyor…</p>
     <div class="row">
       <span class="label">Görünüm</span>
-      <button data-view="front">Önden</button><button data-view="iso">İzometrik</button><button data-view="side">Yandan</button><button data-view="top">Üstten</button><button data-view="dock">Qdock yakın</button><button data-view="part">Parça yakın</button>
+      <button data-view="front">Önden</button><button data-view="iso">İzometrik</button><button data-view="side">Yandan</button><button data-view="top">Üstten</button><button data-view="dock">Qdock yakın</button><button data-view="part">Parça yakın</button><button data-view="room">Masa</button><button id="room-toggle">Odayı gizle</button>
     </div>
     <div class="sliders">
       <label>Animasyon hızı <output></output><input id="s-scale" type="range" data-cfg="scale" min="0.05" max="10" step="0.05"></label>
@@ -79,7 +79,7 @@ button[data-play] { min-width: 104px; font-weight: 600; }
       <label>Y tabla maks. hız (mm/s) <output></output><input id="s-vy" type="range" data-cfg="vy" min="100" max="1500" step="50"></label>
       <label>Y tabla ivme (mm/s²) <output></output><input id="s-ay" type="range" data-cfg="ay" min="500" max="20000" step="500"></label>
     </div>
-    <p class="note">Geometri, SolidWorks montajının (Quadro_19_05-12-07) STEP çıktısından geliyor; web için sadeleştirildi. Bu eski revizyondaki fazla dört kafa ve X rayındaki boşta duran MGN12 arabası gizlendi; ekran 45°'ye yatırıldı; filament tutucu ikinci dikmeye aynalandı. Qdock'taki yaylı silikon nozul kapakları, nozul üstlerine geldiğinde 2,5 mm basılır. Makaralar, PTFE ve kafa kabloları montajda olmadığı için temsili çizildi: PTFE kafadan X yan kapağına, oradan filament tutucuya ve makaraya gider. Basılan parça Snapmaker Space'teki "Alignment Test Cube" (CC0), fotoğraflarından yeniden kuruldu: 20 mm küp, 2 × 2 blok, 4 kat, katman 0,2 mm. Hareket mantığı benim modelim; hız ve ivme değerleri varsayımdır.</p>
+    <p class="note">Geometri, SolidWorks montajının (Quadro_19_05-12-07) STEP çıktısından geliyor; web için sadeleştirildi. Bu eski revizyondaki fazla dört kafa ve X rayındaki boşta duran MGN12 arabası gizlendi; ekran 45°'ye yatırıldı; filament tutucu ikinci dikmeye aynalandı. Qdock'taki yaylı silikon nozul kapakları, nozul üstlerine geldiğinde 2,5 mm basılır. Makaralar, PTFE ve kafa kabloları montajda olmadığı için temsili çizildi: PTFE kafadan X yan kapağına, oradan filament tutucuya ve makaraya gider. Basılan parça Snapmaker Space'teki "Alignment Test Cube" (CC0), fotoğraflarından yeniden kuruldu: 20 mm küp, 2 × 2 blok, 4 kat, katman 0,2 mm. Hareket mantığı benim modelim; hız ve ivme değerleri varsayımdır. Masa: IKEA LINNMON 150 × 75 cm masa üstü, ADILS ayaklarla 74 cm; yazıcının kapladığı alan, tablanın en ön ve en arka konumu dahil, masada kesikli çizgiyle gösterilir. Odadaki diğer eşyalar ölçek için temsilidir.</p>
   </div>
 </div>
 
@@ -447,9 +447,10 @@ loadModel().then((gltf) => {
     caps.push({ group: cg, x: ((cb.min.x + cb.max.x) / 2) * 1000 });
   }
   buildRuns();
+  addRoom();
   ready = true;
   document.getElementById("loading").remove();
-  setView("iso", true);
+  setView("room", true);
   setActive(-1);
   draw();
   run();
@@ -464,12 +465,112 @@ function setActive(j) {
 }
 
 // ---------- views ----------
-const VIEWS = { front: [180, 8, 0.95], iso: [215, 22, 1.05], side: [270, 12, 1.05], top: [180, 80, 1.0], dock: [160, 14, 0.5], part: [205, 28, 0.28] };
+// ---------- the hobby room: a standard IKEA desk and a few things for scale ----------
+// LINNMON 150 x 75 cm tabletop on ADILS legs, 74 cm high. Everything else is a stand-in for scale.
+const DESK = { w: 1.5, d: 0.75, t: 0.025, h: 0.74 };
+const roomGroup = new THREE.Group();
+let roomCenter = new THREE.Vector3(), footprintText = "";
+function mat(color, roughness = 0.6, metalness = 0) { return new THREE.MeshStandardMaterial({ color, roughness, metalness }); }
+function box(w, h, d, m, x, y, z) { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); o.position.set(x, y, z); roomGroup.add(o); return o; }
+function cyl(r0, r1, h, m, x, y, z, seg = 32) { const o = new THREE.Mesh(new THREE.CylinderGeometry(r0, r1, h, seg), m); o.position.set(x, y, z); roomGroup.add(o); return o; }
+function textPlane(lines, w, color = "#1b1c1e") {
+  const cv = document.createElement("canvas"); cv.width = 1024; cv.height = 256 * lines.length;
+  const g = cv.getContext("2d"); g.fillStyle = color; g.textAlign = "center"; g.textBaseline = "middle";
+  lines.forEach((t, i) => { g.font = (i ? "500 120px " : "400 92px ") + "Poppins, ui-sans-serif, system-ui, sans-serif"; g.fillText(t, 512, 128 + i * 256); });
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+  return new THREE.Mesh(new THREE.PlaneGeometry(w, w * cv.height / cv.width), new THREE.MeshBasicMaterial({ map: tex, transparent: true, toneMapped: false }));
+}
+// bounds of what is drawn (the hidden print blocks are 1 m tall until they grow)
+function visibleBox(root) {
+  const b = new THREE.Box3(); root.updateMatrixWorld(true);
+  root.traverse((o) => {
+    let v = o.visible, n = o.parent; while (v && n) { v = n.visible; n = n.parent; }
+    if (o.isMesh && v) b.union(new THREE.Box3().setFromObject(o, false));
+  });
+  return b;
+}
+function rod(a, b, r, m) {                                         // a cylinder from point a to point b
+  const d = new THREE.Vector3().subVectors(b, a), o = new THREE.Mesh(new THREE.CylinderGeometry(r, r, d.length(), 16), m);
+  o.position.copy(a).addScaledVector(d, 0.5); o.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.clone().normalize()); roomGroup.add(o); return o;
+}
+function addRoom() {
+  // footprint of the printer, spools included, with the bed at both ends of its travel
+  const all = visibleBox(scene), bed = visibleBox(bedGroup);
+  const travel = 0.3;
+  const fp = { x0: all.min.x, x1: all.max.x, z0: Math.min(all.min.z, bed.min.z - travel), z1: Math.max(all.max.z, bed.max.z) };
+  const top = all.min.y, floor = top - DESK.h, cx = (fp.x0 + fp.x1) / 2, cz = (fp.z0 + fp.z1) / 2;
+  const dk = { x0: cx - DESK.w / 2, x1: cx + DESK.w / 2, z0: cz - DESK.d / 2, z1: cz + DESK.d / 2 };
+  roomCenter.set(cx, top + 0.1, cz);
+  // desk
+  box(DESK.w, DESK.t, DESK.d, mat(0xf3f2ee, 0.55), cx, top - DESK.t / 2, cz);
+  const legM = mat(0xe9e9e6, 0.4, 0.3);
+  for (const [x, z] of [[dk.x0 + 0.06, dk.z0 + 0.06], [dk.x1 - 0.06, dk.z0 + 0.06], [dk.x0 + 0.06, dk.z1 - 0.06], [dk.x1 - 0.06, dk.z1 - 0.06]]) cyl(0.018, 0.015, DESK.h - DESK.t, legM, x, floor + (DESK.h - DESK.t) / 2, z);
+  // floor and back wall
+  const fl = new THREE.Mesh(new THREE.PlaneGeometry(8, 8), mat(0xc9b393, 0.75)); fl.rotation.x = -Math.PI / 2; fl.position.set(cx, floor, cz); roomGroup.add(fl);
+  const wallZ = dk.z1 + 0.22;
+  const wall = new THREE.Mesh(new THREE.PlaneGeometry(8, 2.8), mat(0xe8e5de, 0.9)); wall.rotation.y = Math.PI; wall.position.set(cx, floor + 1.4, wallZ); roomGroup.add(wall);
+  // pegboard with a few tools, and a wall shelf of spare spools
+  const peg = document.createElement("canvas"); peg.width = 512; peg.height = 320;
+  const pg = peg.getContext("2d"); pg.fillStyle = "#cfc6b4"; pg.fillRect(0, 0, 512, 320); pg.fillStyle = "#8f866f";
+  for (let y = 10; y < 320; y += 20) for (let x = 10; x < 512; x += 20) { pg.beginPath(); pg.arc(x, y, 3, 0, Math.PI * 2); pg.fill(); }
+  const pegTex = new THREE.CanvasTexture(peg); pegTex.colorSpace = THREE.SRGBColorSpace;
+  const board = box(0.9, 0.56, 0.012, new THREE.MeshStandardMaterial({ map: pegTex, roughness: 0.85 }), dk.x0 + 0.5, top + 0.85, wallZ - 0.01);
+  board.rotation.y = Math.PI;
+  const tools = [[0xe5484d, 0.16], [0x2f7fe6, 0.2], [0xf2c230, 0.14], [0x1b1c1e, 0.24], [0x2fa868, 0.18]];
+  tools.forEach(([c, len], i) => { box(0.022, len, 0.022, mat(c, 0.5), dk.x0 + 0.2 + i * 0.13, top + 0.92 - len / 2, wallZ - 0.03); });
+  box(0.9, 0.018, 0.2, mat(0xf3f2ee, 0.55), dk.x1 - 0.5, top + 1.05, wallZ - 0.1);
+  [0xe5484d, 0x2fa868, 0xf2c230, 0x2f7fe6, 0xd9d4c7].forEach((c, i) => spool(dk.x1 - 0.86 + i * 0.16, top + 1.059 + 0.09, wallZ - 0.1, c, 0.09));
+  // desk lamp (left back), laptop (right), mug, two spare spools, office chair
+  const lampX = dk.x1 - 0.12, lampZ = dk.z1 - 0.1, dark = mat(0x26282b, 0.45, 0.4);
+  cyl(0.065, 0.07, 0.02, dark, lampX, top + 0.01, lampZ);
+  const p0 = new THREE.Vector3(lampX, top + 0.02, lampZ), p1 = new THREE.Vector3(lampX, top + 0.42, lampZ - 0.08), p2 = new THREE.Vector3(lampX + 0.02, top + 0.36, lampZ - 0.36);
+  rod(p0, p1, 0.008, dark); rod(p1, p2, 0.008, dark);
+  const head = cyl(0.022, 0.055, 0.09, dark, p2.x, p2.y - 0.035, p2.z); head.rotation.x = 0.35;
+  const lx = dk.x0 + 0.18, lz = dk.z0 + 0.2;
+  box(0.32, 0.016, 0.22, mat(0x8e9298, 0.35, 0.6), lx, top + 0.008, lz);
+  const scr = box(0.32, 0.21, 0.008, mat(0x8e9298, 0.35, 0.6), lx, top + 0.11, lz + 0.12); scr.rotation.x = -0.25;
+  const disp = new THREE.Mesh(new THREE.PlaneGeometry(0.29, 0.18), new THREE.MeshBasicMaterial({ color: 0x1f3a5c, toneMapped: false }));
+  disp.position.set(0, 0, -0.0045); disp.rotation.y = Math.PI; scr.add(disp);
+  cyl(0.04, 0.04, 0.095, mat(0xffffff, 0.3), dk.x1 - 0.14, top + 0.0475, dk.z0 + 0.16);
+  spool(dk.x0 + 0.1, top + 0.1, dk.z1 - 0.16, 0x2fa868, 0.1); spool(dk.x0 + 0.19, top + 0.1, dk.z1 - 0.16, 0xe9e6df, 0.1);
+  chair(cx + 0.38, floor, dk.z0 - 0.26);
+  // the footprint on the desk, dashed, with its size
+  const y = top + 0.0008;
+  const pts = [[fp.x0, fp.z0], [fp.x1, fp.z0], [fp.x1, fp.z1], [fp.x0, fp.z1], [fp.x0, fp.z0]].map(([x, z]) => new THREE.Vector3(x, y, z));
+  const rect = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineDashedMaterial({ color: 0xe5484d, dashSize: 0.02, gapSize: 0.012 }));
+  rect.computeLineDistances(); roomGroup.add(rect);
+  const W = Math.round((fp.x1 - fp.x0) * 100), D = Math.round((fp.z1 - fp.z0) * 100);
+  footprintText = W + " × " + D + " cm";
+  const label = textPlane(["Kapladığı alan", "≈ " + footprintText], 0.22, "#c2363b");
+  label.rotation.set(-Math.PI / 2, 0, Math.PI); label.position.set((fp.x1 + dk.x1) / 2 + 0.02, y + 0.0004, cz - 0.08); roomGroup.add(label);
+  const deskLabel = textPlane(["IKEA LINNMON", "150 × 75 cm"], 0.2, "#6b6d72");
+  deskLabel.rotation.set(-Math.PI / 2, 0, Math.PI); deskLabel.position.set((fp.x1 + dk.x1) / 2 + 0.02, y + 0.0004, cz + 0.16); roomGroup.add(deskLabel);
+  scene.add(roomGroup);
+}
+function spool(x, y, z, color, r) {
+  const g = new THREE.Group(); g.position.set(x, y, z); roomGroup.add(g);
+  const disc = (rr, w, m, dx) => { const o = new THREE.Mesh(new THREE.CylinderGeometry(rr, rr, w, 48), m); o.rotation.z = Math.PI / 2; o.position.x = dx; g.add(o); };
+  const fl = mat(0xcdb48e, 0.8);
+  disc(r, 0.004, fl, -0.03); disc(r, 0.004, fl, 0.03); disc(r * 0.8, 0.056, mat(color, 0.5), 0); disc(r * 0.28, 0.066, mat(0xf1efe9, 0.6), 0);
+}
+function chair(x, floor, z) {
+  const blk = mat(0x2a2c30, 0.6), metal = mat(0x9a9ea3, 0.35, 0.7);
+  for (let i = 0; i < 5; i++) { const a = (i / 5) * Math.PI * 2; const leg = box(0.3, 0.025, 0.04, metal, x + Math.cos(a) * 0.15, floor + 0.07, z + Math.sin(a) * 0.15); leg.rotation.y = -a; cyl(0.025, 0.025, 0.04, blk, x + Math.cos(a) * 0.3, floor + 0.025, z + Math.sin(a) * 0.3); }
+  cyl(0.025, 0.025, 0.33, metal, x, floor + 0.25, z);
+  box(0.48, 0.07, 0.46, blk, x, floor + 0.46, z);
+  const back = box(0.44, 0.5, 0.05, blk, x, floor + 0.78, z - 0.24); back.rotation.x = 0.12;
+}
+document.getElementById("room-toggle").addEventListener("click", (e) => {
+  roomGroup.visible = !roomGroup.visible; e.target.textContent = roomGroup.visible ? "Odayı gizle" : "Odayı göster"; dirty = true; run();
+});
+
+const VIEWS = { front: [180, 8, 0.95], iso: [215, 22, 1.05], side: [270, 12, 1.05], top: [180, 80, 1.0], dock: [160, 14, 0.5], part: [205, 28, 0.28], room: [205, 16, 2.5] };
 let tween = null;
 function setView(name, instant) {
   const [az, el, k] = VIEWS[name];
-  const a = THREE.MathUtils.degToRad(az), e = THREE.MathUtils.degToRad(el), d = name === "dock" || name === "part" ? k : radius * 2.4 * k;
+  const a = THREE.MathUtils.degToRad(az), e = THREE.MathUtils.degToRad(el), d = name === "dock" || name === "part" || name === "room" ? k : radius * 2.4 * k;
   const target = name === "dock" ? new THREE.Vector3(0.3, 0.05, 0.18)
+    : name === "room" ? roomCenter.clone()
     : name === "part" ? new THREE.Vector3(-(PRINT_SX0 + CUBE_X0 + CUBE / 2) / 1000, (PEI_TOP + 12) / 1000, NOZZLE_Z / 1000) : center.clone();
   const pos = target.clone().add(new THREE.Vector3(Math.sin(a) * Math.cos(e) * d, Math.sin(e) * d, Math.cos(a) * Math.cos(e) * d));
   if (instant) { camera.position.copy(pos); controls.target.copy(target); controls.update(); dirty = true; return; }
