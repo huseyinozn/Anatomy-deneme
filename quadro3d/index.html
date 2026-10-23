@@ -217,7 +217,7 @@ const MAT = {
 function materialFor(path) {
   const p = path.toLowerCase().replace(/_/g, " ");          // three.js turns spaces in node names into "_"
   if (p.includes("toolhead")) return MAT.head;
-  if (p.includes("lcd")) return /yuvarlak|a30/.test(p) ? MAT.lcd : MAT.shell;   // white housing, black glass bezel and panel
+  if (p.includes("lcd")) return /a30/.test(p) ? MAT.lcd : MAT.shell;   // white housing front and back, black display panel
   if (p.includes("pei sheet") && !p.includes("magnet")) return MAT.pei;
   if (p.includes("yan-kapak")) return MAT.dock;
   if (p.includes("mgn")) return MAT.rail;
