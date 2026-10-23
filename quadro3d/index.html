@@ -123,7 +123,10 @@ const SPOOLS = [                                                   // tool -> si
 const COVER_ENTRY = { left: [400, 125, 232], right: [-345, 125, 232] };     // top of each X side cover
 const COVER_BOTTOM = 27;                                          // underside of the side covers
 const HOLDER_PTFE = [[307, 205, 365], [227, 205, 365], [-250, 205, 365], [-170, 205, 365]];
-const INLET = [189, 176], PLUG = [192, 210];                       // head top: PTFE inlet and cable plug (y, z)
+const INLET = [189, 176], PLUG = [192, 210];
+// Screen glass of the 4.3" display (export coordinates before the 600 mm fix) and the logo printed on the PEI sheet.
+const LCD_GLASS = { x0: -890, x1: -776, y0: -64, y1: 12, z: 32.6 };
+const PEI_LOGO = { x: 132, z: 186, w: 72 };                        // centre and width in mm, front-left corner seen from the front                       // head top: PTFE inlet and cable plug (y, z)
 
 // ---------- print job: the "Alignment Test Cube" (Snapmaker Space, CC0), rebuilt from its pictures ----------
 // A 20 mm cube of 2 x 2 blocks (10 mm) in 4 tiers (5 mm). Every tier holds all four colours; they rotate tier to tier.
@@ -193,12 +196,12 @@ const MAT = {
   motor: new THREE.MeshStandardMaterial({ color: 0x3a3d42, roughness: 0.45, metalness: 0.5 }),
   cap: new THREE.MeshStandardMaterial({ color: 0x2a2c30, roughness: 0.5, metalness: 0.1 }),
   shell: new THREE.MeshStandardMaterial({ color: 0xe8e9eb, roughness: 0.6, metalness: 0 }),
-  pei: new THREE.MeshStandardMaterial({ color: 0xb09466, roughness: 0.9, metalness: 0.1 }),
+  pei: new THREE.MeshStandardMaterial({ color: 0xcaa452, roughness: 0.82, metalness: 0.3 }),
   dark: new THREE.MeshStandardMaterial({ color: 0x303236, roughness: 0.6, metalness: 0.2 }),
   other: new THREE.MeshStandardMaterial({ color: 0xa3a7ac, roughness: 0.45, metalness: 0.4 }),
 };
 function materialFor(path) {
-  const p = path.toLowerCase();
+  const p = path.toLowerCase().replace(/_/g, " ");          // three.js turns spaces in node names into "_"
   if (p.includes("toolhead")) return MAT.head;
   if (p.includes("pei sheet") && !p.includes("magnet")) return MAT.pei;
   if (p.includes("yan-kapak")) return MAT.dock;
@@ -225,6 +228,20 @@ function nudge(obj, dx, dy, dz) {
   obj.position.copy(obj.parent.worldToLocal(w));
 }
 const v3 = (x, y, z) => new THREE.Vector3(x / 1000, y / 1000, z / 1000);
+function addLogo() {
+  const img = new Image();
+  img.onload = () => {
+    const cv = document.createElement("canvas"); cv.width = 2048; cv.height = Math.round(2048 * img.height / img.width);
+    cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
+    const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+    const h = PEI_LOGO.w * cv.height / cv.width;
+    const logo = new THREE.Mesh(new THREE.PlaneGeometry(PEI_LOGO.w / 1000, h / 1000), new THREE.MeshStandardMaterial({ map: tex, transparent: true, opacity: 0.9, roughness: 0.8, polygonOffset: true, polygonOffsetFactor: -2 }));
+    logo.rotation.set(-Math.PI / 2, 0, Math.PI);                  // lie flat, read from the front
+    logo.position.copy(v3(PEI_LOGO.x, PEI_TOP + 0.05, PEI_LOGO.z));
+    bedGroup.add(logo); dirty = true; run();
+  };
+  img.src = "logo.svg";
+}
 function addSpools() {
   const flange = new THREE.MeshStandardMaterial({ color: 0xcdb48e, roughness: 0.8 });
   const hub = new THREE.MeshStandardMaterial({ color: 0xf1efe9, roughness: 0.6 });
@@ -341,11 +358,17 @@ loadModel().then((gltf) => {
     pivot.position.set(0, LCD_HINGE[0] / 1000, LCD_HINGE[1] / 1000);
     scene.add(pivot); pivot.updateMatrixWorld(true);
     pivot.attach(byId[LCD_ID]);
+    const glass = new THREE.Mesh(new THREE.PlaneGeometry((LCD_GLASS.x1 - LCD_GLASS.x0) / 1000, (LCD_GLASS.y1 - LCD_GLASS.y0) / 1000), new THREE.MeshBasicMaterial({ color: 0x222222 }));
+    glass.position.copy(v3((LCD_GLASS.x0 + LCD_GLASS.x1) / 2 + LCD_SHIFT_X, (LCD_GLASS.y0 + LCD_GLASS.y1) / 2, LCD_GLASS.z));
+    glass.rotation.y = Math.PI;                                     // face the front (-z)
+    scene.add(glass); pivot.attach(glass);
+    new THREE.TextureLoader().load("screen.png", (tex) => { tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4; glass.material = new THREE.MeshBasicMaterial({ map: tex, toneMapped: false }); dirty = true; run(); });
     pivot.rotation.x = THREE.MathUtils.degToRad(90 - LCD_TILT);
   }
   const box = new THREE.Box3().setFromObject(scene);
   box.getCenter(center); radius = box.getSize(new THREE.Vector3()).length() / 2;
   addSpools();
+  addLogo();
   for (const id of BED_IDS) if (byId[id]) bedGroup.attach(byId[id]);
   for (const id of Z_IDS) if (byId[id]) zGroup.attach(byId[id]);
   headGroups.forEach((g, j) => {
