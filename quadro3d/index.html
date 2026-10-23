@@ -109,7 +109,9 @@ const MIRROR_X = 28.5;                                           // mid-plane be
 // The outer cover of the left X side cover came out of the export empty; mirror the right one across the docks' mid-plane.
 const SIDE_COVER_ID = "NAUO78", DOCK_MIRROR_X = 29;
 // A loose MGN12 carriage sits on the X rail in this export, and a flat idler floats under the beam; the product has neither.
-const HIDE_IDS = ["NAUO34", "NAUO50"];                         // + a flat idler floating under the beam
+const HIDE_IDS = ["NAUO34", "NAUO50",                         // + a flat idler floating under the beam
+  // small screws left on the beam at the export's head positions, four per side
+  "NAUO16", "NAUO17", "NAUO18", "NAUO19", "NAUO20", "NAUO21", "NAUO22", "NAUO23", "NAUO24", "NAUO25", "NAUO26", "NAUO27"];
 // Each head of this revision still carries a 50 mm radial fan assembly hanging below the back of the cover.
 const HEAD_HIDE = /fan-fanduct-montaj/i;
 // The screen hinges on its gear (axis along x); users tilt it to 45 degrees.
