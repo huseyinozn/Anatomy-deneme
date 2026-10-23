@@ -1,4 +1,5 @@
 <title>Quadro 3D</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap">
 <meta name="claude:viewport-fit-sides" content="cover">
 <style>
 /* Layout: one wide viewer on top, the control desk below it; stacks to one column on a phone. */
@@ -126,7 +127,8 @@ const HOLDER_PTFE = [[307, 205, 365], [227, 205, 365], [-250, 205, 365], [-170, 
 const INLET = [189, 176], PLUG = [192, 210];
 // Screen glass of the 4.3" display (export coordinates before the 600 mm fix) and the logo printed on the PEI sheet.
 const LCD_GLASS = { x0: -890, x1: -776, y0: -64, y1: 12, z: 32.6 };
-const PEI_LOGO = { x: 132, z: 186, w: 72 };                        // centre and width in mm, front-left corner seen from the front                       // head top: PTFE inlet and cable plug (y, z)
+// The printed artwork on the textured PEI sheet: white, one colour, laid out as on the production plate.
+const PEI_SHEET = { x0: -124, x1: 181, z0: 159.7, z1: 488.7 };   // sheet outline in the export (mm), front edge at z0
 
 // ---------- print job: the "Alignment Test Cube" (Snapmaker Space, CC0), rebuilt from its pictures ----------
 // A 20 mm cube of 2 x 2 blocks (10 mm) in 4 tiers (5 mm). Every tier holds all four colours; they rotate tier to tier.
@@ -228,19 +230,46 @@ function nudge(obj, dx, dy, dz) {
   obj.position.copy(obj.parent.worldToLocal(w));
 }
 const v3 = (x, y, z) => new THREE.Vector3(x / 1000, y / 1000, z / 1000);
-function addLogo() {
-  const img = new Image();
-  img.onload = () => {
-    const cv = document.createElement("canvas"); cv.width = 2048; cv.height = Math.round(2048 * img.height / img.width);
-    cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
-    const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
-    const h = PEI_LOGO.w * cv.height / cv.width;
-    const logo = new THREE.Mesh(new THREE.PlaneGeometry(PEI_LOGO.w / 1000, h / 1000), new THREE.MeshStandardMaterial({ map: tex, transparent: true, opacity: 0.9, roughness: 0.8, polygonOffset: true, polygonOffsetFactor: -2 }));
-    logo.rotation.set(-Math.PI / 2, 0, Math.PI);                  // lie flat, read from the front
-    logo.position.copy(v3(PEI_LOGO.x, PEI_TOP + 0.05, PEI_LOGO.z));
-    bedGroup.add(logo); dirty = true; run();
-  };
-  img.src = "logo.svg";
+// Draw the plate artwork into a canvas (4 px per mm, top of the canvas = back of the bed) and lay it on the sheet.
+async function addPeiArt() {
+  const W = PEI_SHEET.x1 - PEI_SHEET.x0, H = PEI_SHEET.z1 - PEI_SHEET.z0, K = 4;
+  const cv = document.createElement("canvas"); cv.width = Math.round(W * K); cv.height = Math.round(H * K);
+  const g = cv.getContext("2d"); g.scale(K, K);
+  const ink = "rgba(255,255,255,0.92)", font = (w, px) => w + " " + px + "px Poppins, ui-sans-serif, system-ui, sans-serif";
+  try { await Promise.all(["400", "500", "600"].map((w) => document.fonts.load(font(w, 10)))); } catch {}
+  // the Co Print logo, recoloured white
+  const svg = (await (await fetch("logo.svg")).text()).replace(/#[0-9a-fA-F]{6}/g, "#ffffff");
+  const logo = await new Promise((resolve, reject) => { const im = new Image(); im.onload = () => resolve(im); im.onerror = reject; im.src = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" })); });
+  const drawLogo = (cx, cy, w) => { const h = w * logo.height / logo.width; g.drawImage(logo, cx - w / 2, cy - h / 2, w, h); };
+  g.fillStyle = ink; g.strokeStyle = ink; g.textBaseline = "middle"; g.lineJoin = "round";
+  const tri = (x, y, s) => { g.beginPath(); g.moveTo(x, y - s * 0.6); g.lineTo(x + s * 0.6, y + s * 0.45); g.lineTo(x - s * 0.6, y + s * 0.45); g.closePath(); g.fill(); };
+  const text = (t, x, y, w, px, align = "left", spacing = 0) => { g.font = font(w, px); g.textAlign = align; g.letterSpacing = spacing + "px"; g.fillText(t, x, y); };
+  // centre: logo and QUADRO
+  drawLogo(W / 2, 142, 62);
+  text("QUADRO", W / 2, 163, "600", 21, "center", 0.6);
+  // back tab: nozzle cleaning area
+  text("Keep Clean", W / 2, 11.5, "400", 2.6, "center"); tri(W / 2 - 16, 11.2, 3); tri(W / 2 + 16, 11.2, 3);
+  g.lineWidth = 0.45; g.strokeRect(W / 2 - 35, 15.8, 70, 5);
+  text("Nozzle Cleaning Area", W / 2, 18.4, "400", 3, "center"); tri(W / 2 - 30, 18.3, 2.6); tri(W / 2 + 30, 18.3, 2.6);
+  // back right: calibration station
+  g.lineWidth = 0.5; g.beginPath(); g.arc(234, 17.5, 2.6, 0, Math.PI * 2); g.stroke();
+  g.beginPath(); g.arc(234, 17.5, 4.2, -0.9, 0.9); g.stroke(); g.beginPath(); g.arc(234, 17.5, 4.2, Math.PI - 0.9, Math.PI + 0.9); g.stroke();
+  text("360° Calibration Station", 240, 16.2, "500", 3.4); text("Toolhead Sync Calibration", 240, 20, "400", 2.4); tri(292, 17.5, 3.2);
+  // front left: hot surface
+  g.lineWidth = 0.55; g.beginPath(); g.moveTo(17, 296); g.lineTo(23, 306); g.lineTo(11, 306); g.closePath(); g.stroke();
+  for (const dx of [-2, 0, 2]) { g.beginPath(); g.moveTo(17 + dx, 304.5); g.bezierCurveTo(17 + dx - 1, 303, 17 + dx + 1, 301.5, 17 + dx, 300); g.stroke(); }
+  text("Caution:", 26, 299.5, "400", 3.4); text("Hot Surface!", 26, 304, "400", 3.4);
+  // front right: plate spec
+  text("300x300mm", 294, 289.5, "400", 3, "right"); text("Textured PEI Plate", 294, 294.5, "600", 5.2, "right");
+  g.lineWidth = 0.4; g.strokeRect(266, 300.4, 28, 3.8); text("PLA/ABS/PETG/TPU", 280, 302.4, "400", 2.5, "center");
+  for (let i = 0; i < 7; i++) { g.beginPath(); g.moveTo(240 + i * 3.4, 304); g.lineTo(242 + i * 3.4, 300.6); g.lineWidth = 1; g.stroke(); }
+  // front tab: small logo
+  drawLogo(W / 2, 318, 27);
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
+  const art = new THREE.Mesh(new THREE.PlaneGeometry(W / 1000, H / 1000), new THREE.MeshStandardMaterial({ map: tex, transparent: true, roughness: 0.8, polygonOffset: true, polygonOffsetFactor: -2 }));
+  art.rotation.set(-Math.PI / 2, 0, Math.PI);                     // lie flat; canvas top towards the back, readable from the front
+  art.position.copy(v3((PEI_SHEET.x0 + PEI_SHEET.x1) / 2, PEI_TOP + 0.05, (PEI_SHEET.z0 + PEI_SHEET.z1) / 2));
+  bedGroup.add(art); dirty = true; run();
 }
 function addSpools() {
   const flange = new THREE.MeshStandardMaterial({ color: 0xcdb48e, roughness: 0.8 });
@@ -368,7 +397,7 @@ loadModel().then((gltf) => {
   const box = new THREE.Box3().setFromObject(scene);
   box.getCenter(center); radius = box.getSize(new THREE.Vector3()).length() / 2;
   addSpools();
-  addLogo();
+  addPeiArt().catch(() => {});
   for (const id of BED_IDS) if (byId[id]) bedGroup.attach(byId[id]);
   for (const id of Z_IDS) if (byId[id]) zGroup.attach(byId[id]);
   headGroups.forEach((g, j) => {
