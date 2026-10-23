@@ -123,7 +123,11 @@ const SPOOLS = [                                                   // tool -> si
   { side: "left", y: 336, z: 440 }, { side: "left", y: 90, z: 426 },
   { side: "right", y: 90, z: 426 }, { side: "right", y: 336, z: 440 },
 ];
-const COVER_ENTRY = { left: [400, 125, 232], right: [-345, 125, 232] };     // top of each X side cover
+// Four holes on top of each X side cover (measured from the CAD mesh): the middle two take PTFE, the outer two the head cables.
+const COVER_HOLES = {
+  left: { top: 123.5, x: 404.0, cx: 402.9, ptfe: [229.4, 251.0], cable: [211.5, 268.9] },
+  right: { top: 123.5, x: -347.0, cx: -345.8, ptfe: [229.5, 251.0], cable: [211.5, 268.9] },
+};
 const COVER_BOTTOM = 27;                                          // underside of the side covers
 const HOLDER_PTFE = [[307, 205, 365], [227, 205, 365], [-250, 205, 365], [-170, 205, 365]];
 const INLET = [189, 176], PLUG = [192, 210];
@@ -313,8 +317,8 @@ function updateRuns() {
     if (r.key === key) return;
     r.key = key;
     const sp = SPOOLS[j], side = sp.side, s = side === "left" ? 1 : -1;
-    const [ex, ey, ez0] = COVER_ENTRY[side], [hpx, hpy, hpz] = HOLDER_PTFE[j];
-    const ez = ez0 + (j % 2 ? 7 : -7);                             // two tubes per cover, side by side
+    const H = COVER_HOLES[side], k = j % 2, [hpx, hpy, hpz] = HOLDER_PTFE[j];
+    const ex = H.x, ey = H.top, ez = H.ptfe[k], cx = H.cx, cz = H.cable[k];
     const xs = SPOOL_X[side], feed = v3(xs, sp.y > 200 ? sp.y - 90 : sp.y + 92, sp.z - 45);
     const mid = (hx + ex) / 2;
     const ptfe = [
@@ -327,7 +331,7 @@ function updateRuns() {
     tube(r.ptfe, ptfe, 2.0); tube(r.fil, ptfe, 0.9);
     const cable = [
       v3(hx, PLUG[0] + z, PLUG[1]), v3(hx, PLUG[0] + 35 + z, PLUG[1] + 6),
-      v3(mid, INLET[0] + 62 + z, 228), v3(ex - s * 14, ey + 32 + z, ez + 18), v3(ex - s * 4, ey + 2 + z, ez + 16),
+      v3(mid, INLET[0] + 62 + z, (PLUG[1] + cz) / 2), v3(cx, ey + 40 + z, cz), v3(cx, ey + z, cz), v3(cx, ey - 12 + z, cz),
     ];
     tube(r.cable, cable, 2.4);
   });
