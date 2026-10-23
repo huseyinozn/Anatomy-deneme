@@ -78,7 +78,7 @@ button[data-play] { min-width: 104px; font-weight: 600; }
       <label>Y tabla maks. hız (mm/s) <output></output><input id="s-vy" type="range" data-cfg="vy" min="100" max="1500" step="50"></label>
       <label>Y tabla ivme (mm/s²) <output></output><input id="s-ay" type="range" data-cfg="ay" min="500" max="20000" step="500"></label>
     </div>
-    <p class="note">Geometri, SolidWorks montajının (Quadro_19_05-12-07) STEP çıktısından geliyor; web için sadeleştirildi. Bu eski revizyonda 8 kafa vardı, ürüne uygun olarak 4'ü gösteriliyor. Basılan parça Snapmaker Space'teki "Alignment Test Cube" (CC0): 3MF dosyası giriş istediği için sayfadaki fotoğraflardan yeniden kuruldu: 20 mm küp, 2 × 2 blok, 4 kat, katman 0,2 mm, iki çevre ve düz dolgu. Hareket mantığı benim modelim: kafalar birbirini geçemez; Tool k basarken soldakiler sol, sağdakiler sağ Qdock'a çekilir; takım değişiminde dört kafa ve tabla aynı ölçeklenmiş trapez profiliyle aynı anda başlayıp durur. Hız ve ivme değerleri varsayımdır.</p>
+    <p class="note">Geometri, SolidWorks montajının (Quadro_19_05-12-07) STEP çıktısından geliyor; web için sadeleştirildi. Bu eski revizyondaki fazla dört kafa ve X rayındaki boşta duran MGN12 arabası gizlendi; ekran 45°'ye yatırıldı; filament tutucu ikinci dikmeye aynalandı. Qdock'taki yaylı silikon nozul kapakları, nozul üstlerine geldiğinde 2,5 mm basılır. Makaralar, PTFE ve kafa kabloları montajda olmadığı için temsili çizildi: PTFE kafadan X yan kapağına, oradan filament tutucuya ve makaraya gider. Basılan parça Snapmaker Space'teki "Alignment Test Cube" (CC0), fotoğraflarından yeniden kuruldu: 20 mm küp, 2 × 2 blok, 4 kat, katman 0,2 mm. Hareket mantığı benim modelim; hız ve ivme değerleri varsayımdır.</p>
   </div>
 </div>
 
@@ -105,6 +105,24 @@ const LCD_ID = "NAUO389", LCD_SHIFT_X = 600;
 // The filament holder only exists on one upright in the export; the product has it on both.
 const HOLDER_IDS = ["NAUO304", "NAUO305", "NAUO306", "NAUO311", "NAUO312"];
 const MIRROR_X = 28.5;                                           // mid-plane between the uprights
+// A loose MGN12 carriage sits on the X rail in this export; the product has none there.
+const HIDE_IDS = ["NAUO34"];
+// The screen hinges on its gear (axis along x); users tilt it to 45 degrees.
+const LCD_HINGE = [-30.5, 51.5], LCD_TILT = 45;
+// Qdock nozzle closers: spring-loaded silicone caps, one per slot, pressed down when a nozzle parks on them.
+const CAP_PAIRS = [["NAUO66", "NAUO67"], ["NAUO72", "NAUO71"], ["NAUO74", "NAUO73"], ["NAUO80", "NAUO81"], ["NAUO82", "NAUO83"], ["NAUO84", "NAUO85"]];
+const CAP_PRESS = 2.5, CAP_REACH = 8;                              // mm of travel, mm from the cap centre where the dome is touched
+// The head cable plug floats 20 mm above its socket in the export; seat it.
+const PLUG_DROP = 15;
+// Spools on the holder arms and the PTFE / cable runs (world mm). Left from the front = +x.
+const SPOOL_X = { left: 272, right: -215 }, SPOOL_W = 64, SPOOL_R = 100, CORE_R = 80;
+const SPOOLS = [                                                   // tool -> side, arm height and depth
+  { side: "left", y: 336, z: 440 }, { side: "left", y: 90, z: 426 },
+  { side: "right", y: 336, z: 440 }, { side: "right", y: 90, z: 426 },
+];
+const COVER_ENTRY = { left: [400, 125, 232], right: [-345, 125, 232] };     // top of each X side cover
+const HOLDER_PTFE = [[307, 205, 365], [227, 205, 365], [-250, 205, 365], [-170, 205, 365]];
+const INLET = [189, 176], PLUG = [192, 210];                       // head top: PTFE inlet and cable plug (y, z)
 
 // ---------- print job: the "Alignment Test Cube" (Snapmaker Space, CC0), rebuilt from its pictures ----------
 // A 20 mm cube of 2 x 2 blocks (10 mm) in 4 tiers (5 mm). Every tier holds all four colours; they rotate tier to tier.
@@ -198,6 +216,78 @@ let center = new THREE.Vector3(), radius = 1;
 const trails = new THREE.Group();
 bedGroup.add(trails);
 
+const plugs = [], caps = [];
+// move an object by a world-space offset (mm), whatever its parent's frame
+function nudge(obj, dx, dy, dz) {
+  obj.updateWorldMatrix(true, false);
+  const w = new THREE.Vector3().setFromMatrixPosition(obj.matrixWorld).add(new THREE.Vector3(dx / 1000, dy / 1000, dz / 1000));
+  obj.position.copy(obj.parent.worldToLocal(w));
+}
+const v3 = (x, y, z) => new THREE.Vector3(x / 1000, y / 1000, z / 1000);
+function addSpools() {
+  const flange = new THREE.MeshStandardMaterial({ color: 0xcdb48e, roughness: 0.8 });
+  const hub = new THREE.MeshStandardMaterial({ color: 0xf1efe9, roughness: 0.6 });
+  SPOOLS.forEach((sp, j) => {
+    const g = new THREE.Group(), xc = SPOOL_X[sp.side];
+    const disc = (r, w, mat) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(r / 1000, r / 1000, w / 1000, 64), mat); m.rotation.z = Math.PI / 2; return m; };
+    const f1 = disc(SPOOL_R, 4, flange), f2 = disc(SPOOL_R, 4, flange);
+    f1.position.x = -(SPOOL_W / 2 - 2) / 1000; f2.position.x = (SPOOL_W / 2 - 2) / 1000;
+    g.add(f1, f2, disc(CORE_R, SPOOL_W - 8, new THREE.MeshStandardMaterial({ color: COLORS[j], roughness: 0.5 })), disc(28, SPOOL_W + 2, hub));
+    g.position.copy(v3(xc, sp.y, sp.z));
+    scene.add(g);
+  });
+}
+// PTFE tube (clear, with the coloured filament inside) and head cable for each tool, rebuilt when the head moves
+const runs = [];
+const ptfeMat = new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.38, roughness: 0.15, depthWrite: false });
+const cableMat = new THREE.MeshStandardMaterial({ color: 0x1b1c1e, roughness: 0.6 });
+function buildRuns() {
+  for (let j = 0; j < 4; j++) {
+    const fil = new THREE.MeshStandardMaterial({ color: COLORS[j], roughness: 0.4 });
+    const r = { ptfe: new THREE.Mesh(undefined, ptfeMat), fil: new THREE.Mesh(undefined, fil), cable: new THREE.Mesh(undefined, cableMat), key: "" };
+    scene.add(r.ptfe, r.fil, r.cable); runs.push(r);
+  }
+  updateRuns();
+}
+function tube(mesh, pts, radius) {
+  const curve = new THREE.CatmullRomCurve3(pts, false, "centripetal");
+  mesh.geometry?.dispose();
+  mesh.geometry = new THREE.TubeGeometry(curve, 90, radius / 1000, 8, false);
+}
+function updateRuns() {
+  const z = zGroup.position.y * 1000;
+  runs.forEach((r, j) => {
+    const hx = -sx[j], key = hx.toFixed(1) + "|" + z.toFixed(1);
+    if (r.key === key) return;
+    r.key = key;
+    const sp = SPOOLS[j], side = sp.side, s = side === "left" ? 1 : -1;
+    const [ex, ey, ez] = COVER_ENTRY[side], [hpx, hpy, hpz] = HOLDER_PTFE[j];
+    const xs = SPOOL_X[side], feed = v3(xs, sp.y > 200 ? sp.y - 90 : sp.y + 92, sp.z - 45);
+    const mid = (hx + ex) / 2;
+    const ptfe = [
+      v3(hx, INLET[0] + z, INLET[1]), v3(hx, INLET[0] + 45 + z, INLET[1] + 4),
+      v3(mid, INLET[0] + 75 + z, 205), v3(ex - s * 10, ey + 40 + z, ez - 4), v3(ex, ey + z, ez),
+      v3(ex + s * 25, ey + 60 + z, ez + 50), v3(hpx, hpy - 25, hpz - 30), v3(hpx, hpy, hpz), feed,
+    ];
+    tube(r.ptfe, ptfe, 2.0); tube(r.fil, ptfe, 0.9);
+    const cable = [
+      v3(hx, PLUG[0] + z, PLUG[1]), v3(hx, PLUG[0] + 35 + z, PLUG[1] + 6),
+      v3(mid, INLET[0] + 62 + z, 228), v3(ex - s * 14, ey + 32 + z, ez + 18), v3(ex - s * 4, ey + 2 + z, ez + 16),
+    ];
+    tube(r.cable, cable, 2.4);
+  });
+}
+function pressCaps() {
+  for (const c of caps) {
+    let press = 0;
+    for (let j = 0; j < 4; j++) {
+      const d = Math.abs(-sx[j] - c.x), t = Math.min(1, Math.max(0, (CAP_REACH - d) / (CAP_REACH - 3)));
+      press = Math.max(press, CAP_PRESS * t * t * (3 - 2 * t));
+    }
+    c.group.position.y = -press / 1000;
+  }
+}
+
 // The model ships as base64 text (artifacts serve text, not .glb); decode it back into a GLB.
 async function loadModel() {
   const res = await fetch("quadro-glb.txt");
@@ -241,8 +331,17 @@ loadModel().then((gltf) => {
     part.matrixWorld.decompose(copy.position, copy.quaternion, copy.scale);
     mirror.add(copy);
   }
+  for (const id of HIDE_IDS) if (byId[id]) byId[id].visible = false;
+  if (byId[LCD_ID]) {
+    const pivot = new THREE.Group();
+    pivot.position.set(0, LCD_HINGE[0] / 1000, LCD_HINGE[1] / 1000);
+    scene.add(pivot); pivot.updateMatrixWorld(true);
+    pivot.attach(byId[LCD_ID]);
+    pivot.rotation.x = THREE.MathUtils.degToRad(90 - LCD_TILT);
+  }
   const box = new THREE.Box3().setFromObject(scene);
   box.getCenter(center); radius = box.getSize(new THREE.Vector3()).length() / 2;
+  addSpools();
   for (const id of BED_IDS) if (byId[id]) bedGroup.attach(byId[id]);
   for (const id of Z_IDS) if (byId[id]) zGroup.attach(byId[id]);
   headGroups.forEach((g, j) => {
@@ -255,7 +354,18 @@ loadModel().then((gltf) => {
     const led = new THREE.Mesh(new THREE.BoxGeometry(0.016, 0.003, 0.0008), new THREE.MeshBasicMaterial({ color: COLORS[j] }));
     led.position.set((hb.min.x + hb.max.x) / 2, hb.max.y - 0.032, hb.min.z - 0.0005);
     g.add(led);
+    head.traverse((o) => { if (!plugs[j] && /kablo/i.test(o.name)) plugs[j] = o; });
+    if (plugs[j]) nudge(plugs[j], 0, -PLUG_DROP, 0);
   });
+  for (const pair of CAP_PAIRS) {
+    const parts = pair.map((id) => byId[id]).filter(Boolean);
+    if (!parts.length) continue;
+    const cg = new THREE.Group(); zGroup.add(cg);
+    const cb = new THREE.Box3();
+    for (const part of parts) { cb.expandByObject(part); cg.attach(part); }
+    caps.push({ group: cg, x: ((cb.min.x + cb.max.x) / 2) * 1000 });
+  }
+  buildRuns();
   ready = true;
   document.getElementById("loading").remove();
   setView("iso", true);
@@ -273,12 +383,12 @@ function setActive(j) {
 }
 
 // ---------- views ----------
-const VIEWS = { front: [180, 8, 1.15], iso: [215, 22, 1.25], side: [270, 12, 1.25], top: [180, 80, 1.2], dock: [150, 15, 0.6], part: [205, 28, 0.2] };
+const VIEWS = { front: [180, 8, 0.95], iso: [215, 22, 1.05], side: [270, 12, 1.05], top: [180, 80, 1.0], dock: [160, 14, 0.5], part: [205, 28, 0.28] };
 let tween = null;
 function setView(name, instant) {
   const [az, el, k] = VIEWS[name];
-  const a = THREE.MathUtils.degToRad(az), e = THREE.MathUtils.degToRad(el), d = radius * 2.4 * k;
-  const target = name === "dock" ? center.clone().add(new THREE.Vector3(0.29, 0.02, -0.05))
+  const a = THREE.MathUtils.degToRad(az), e = THREE.MathUtils.degToRad(el), d = name === "dock" || name === "part" ? k : radius * 2.4 * k;
+  const target = name === "dock" ? new THREE.Vector3(0.3, 0.05, 0.18)
     : name === "part" ? new THREE.Vector3(-(PRINT_SX0 + CUBE_X0 + CUBE / 2) / 1000, (PEI_TOP + 12) / 1000, NOZZLE_Z / 1000) : center.clone();
   const pos = target.clone().add(new THREE.Vector3(Math.sin(a) * Math.cos(e) * d, Math.sin(e) * d, Math.cos(a) * Math.cos(e) * d));
   if (instant) { camera.position.copy(pos); controls.target.copy(target); controls.update(); dirty = true; return; }
@@ -389,6 +499,7 @@ function draw() {
   headGroups.forEach((g, j) => (g.position.x = -(sx[j] - SX0[j]) / 1000));
   bedGroup.position.z = (NOZZLE_Z - (PRINT_Z0 + ny)) / 1000;
   zGroup.position.y = ((layer + 1) * LAYER_H - NOZZLE_DROP) / 1000;
+  if (runs.length) { updateRuns(); pressCaps(); }
   dirty = true;
 }
 
