@@ -9,7 +9,7 @@ const [input, output, ratio = "0.25", error = "0.0004", namesFile, compress = "n
 const NAMES = namesFile ? JSON.parse(readFileSync(namesFile, "utf8")) : {};
 // STEP escapes non-ASCII as \X2\hhhh\X0\; turn them back into letters
 const unstep = (t) => t.replace(/\\X2\\([0-9A-Fa-f]+)\\X0\\/g, (_, hex) => hex.match(/.{4}/g).map((h) => String.fromCharCode(parseInt(h, 16))).join(""));
-const DROP = new Set([
+const DROP = new Set(process.env.DROP ? process.env.DROP.split(",") : [
   // copies parked far left of the machine in this older assembly
   "NAUO380", "NAUO381", "NAUO382", "NAUO383", "NAUO384", "NAUO385", "NAUO386", "NAUO387", "NAUO388", "NAUO390", "NAUO391", "NAUO392",
   // four of the eight toolheads: the machine runs four
@@ -21,6 +21,15 @@ await MeshoptEncoder.ready;
 const io = new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({ "meshopt.encoder": MeshoptEncoder });
 const doc = await io.read(input);
 for (const node of doc.getRoot().listNodes()) if (DROP.has(node.getName())) node.dispose();
+// OFFSET="x,y,z" (mm) moves the whole model, e.g. to bring a newer export into the frame the page was measured in
+if (process.env.OFFSET) {
+  const t = process.env.OFFSET.split(",").map((v) => Number(v) / 1000);
+  for (const scene of doc.getRoot().listScenes()) {
+    const wrap = doc.createNode("offset").setTranslation(t);
+    for (const n of scene.listChildren()) { scene.removeChild(n); wrap.addChild(n); }
+    scene.addChild(wrap);
+  }
+}
 // name every node "NAUO12:part name" so the page can colour and move parts by name
 for (const node of doc.getRoot().listNodes()) {
   const id = node.getName(), part = NAMES[id]?.child;

@@ -91,31 +91,22 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 
 // ---------- machine facts measured from the CAD export (mm, world: x across, y up, z front(-)/back(+)) ----------
+// The current export sits at (-0.56, +37.01, +364) mm from this frame; the CAD pipeline shifts it back (pack.mjs OFFSET).
 // Seen from the front, +x is on the viewer's left, so "sx" = -x is the left-to-right screen coordinate.
-const HEAD_IDS = ["NAUO45", "NAUO51", "NAUO58", "NAUO54"];   // Tool 0..3, left to right from the front
+const HEAD_IDS = ["NAUO10", "NAUO11", "NAUO16", "NAUO17"];   // Tool 0..3, left to right from the front
 const SX0 = [-347.5, -291.5, 234.5, 290.5];                     // their nozzle sx in the export
 const LP = [-347.5, -291.5, -235.5];                            // left Qdock slots L1..L3 (Tool 0, 1, 2)
 const RP = [178.5, 234.5, 290.5];                               // right Qdock slots R1..R3 (Tool 1, 2, 3)
 const PRINT_SX0 = -178.5;                                       // print area left edge in sx (300 mm wide)
 const NOZZLE_Z = 176.15, PRINT_Z0 = 174.2, PEI_TOP = 31.0, NOZZLE_DROP = 14.2;
-const BED_IDS = ["NAUO341", "NAUO342", "NAUO313", "NAUO315", "NAUO347"];
-const Z_IDS = ["NAUO3", "NAUO257", "NAUO240", "NAUO260", "NAUO261"];
+const BED_IDS = ["NAUO267", "NAUO343", "NAUO345", "NAUO336"];                     // bed, Y carriages, belt clamp
+const Z_IDS = ["NAUO3", "NAUO178", "NAUO193", "NAUO196", "NAUO197", "NAUO177", "NAUO194"];   // X axis, Z carriers, bearings, lead-screw nuts
 const COLORS = ["#2f7fe6", "#e5484d", "#2fa868", "#f2c230"];   // Tool 0 blue, 1 red, 2 green, 3 yellow
-// This older export parks the 4.3" screen 600 mm off to the side with a copy of the base; put it back.
-const LCD_ID = "NAUO389", LCD_SHIFT_X = 600;
-// The filament holder only exists on one upright in the export; the product has it on both.
-const HOLDER_IDS = ["NAUO304", "NAUO305", "NAUO306", "NAUO311", "NAUO312"];
-const MIRROR_X = 28.5;                                           // mid-plane between the uprights
-// The outer cover of the left X side cover came out of the export empty; mirror the right one across the docks' mid-plane.
-const SIDE_COVER_ID = "NAUO78", DOCK_MIRROR_X = 29;
-// A loose MGN12 carriage sits on the X rail in this export, and a flat idler floats under the beam; the product has neither.
-const HIDE_IDS = ["NAUO34", "NAUO50",                         // + a flat idler floating under the beam
-  // small screws left on the beam at the export's head positions, four per side
-  "NAUO16", "NAUO17", "NAUO18", "NAUO19", "NAUO20", "NAUO21", "NAUO22", "NAUO23", "NAUO24", "NAUO25", "NAUO26", "NAUO27"];
+const LCD_ID = "NAUO266";
 // The screen hinges on its gear (axis along x); users tilt it to 45 degrees.
 const LCD_HINGE = [-30.5, 51.5], LCD_TILT = 45;
 // Qdock nozzle closers: spring-loaded silicone caps, one per slot, pressed down when a nozzle parks on them.
-const CAP_PAIRS = [["NAUO66", "NAUO67"], ["NAUO72", "NAUO71"], ["NAUO74", "NAUO73"], ["NAUO80", "NAUO81"], ["NAUO82", "NAUO83"], ["NAUO84", "NAUO85"]];
+const CAP_PAIRS = [["NAUO73", "NAUO74"], ["NAUO79", "NAUO78"], ["NAUO81", "NAUO80"], ["NAUO66", "NAUO61"], ["NAUO62", "NAUO63"], ["NAUO65", "NAUO64"]];
 const CAP_PRESS = 2.5, CAP_REACH = 8;                              // mm of travel, mm from the cap centre where the dome is touched
 // The head cable plug floats 20 mm above its socket in the export; seat it.
 const PLUG_DROP = 15;
@@ -133,8 +124,8 @@ const COVER_HOLES = {
 const COVER_BOTTOM = 27;                                          // underside of the side covers
 const HOLDER_PTFE = [[307, 205, 365], [227, 205, 365], [-250, 205, 365], [-170, 205, 365]];
 const INLET = [189, 176], PLUG = [192, 210];
-// Screen glass of the 4.3" display (export coordinates before the 600 mm fix) and the logo printed on the PEI sheet.
-const LCD_GLASS = { x0: -890, x1: -776, y0: -64, y1: 12, z: 32.6 };
+// Screen glass of the 4.3" display and the logo printed on the PEI sheet.
+const LCD_GLASS = { x0: -290, x1: -176, y0: -64, y1: 12, z: 32.6 };
 // The printed artwork on the textured PEI sheet: white, one colour, laid out as on the production plate.
 const PEI_SHEET = { x0: -124, x1: 181, z0: 159.7, z1: 488.7 };   // sheet outline in the export (mm), front edge at z0
 
@@ -422,27 +413,12 @@ loadModel().then((gltf) => {
     }
   });
   if (byId[LCD_ID]) {
-    const lcd = new THREE.Group(); scene.add(lcd); lcd.attach(byId[LCD_ID]); lcd.position.x = LCD_SHIFT_X / 1000;
-  }
-  const mirror = new THREE.Group();
-  mirror.matrixAutoUpdate = false;
-  mirror.matrix.makeTranslation(2 * MIRROR_X / 1000, 0, 0).multiply(new THREE.Matrix4().makeScale(-1, 1, 1));
-  scene.add(mirror);
-  for (const id of HOLDER_IDS) {
-    const part = byId[id];
-    if (!part) continue;
-    const copy = part.clone(true);
-    part.matrixWorld.decompose(copy.position, copy.quaternion, copy.scale);
-    mirror.add(copy);
-  }
-  for (const id of HIDE_IDS) if (byId[id]) byId[id].visible = false;
-  if (byId[LCD_ID]) {
     const pivot = new THREE.Group();
     pivot.position.set(0, LCD_HINGE[0] / 1000, LCD_HINGE[1] / 1000);
     scene.add(pivot); pivot.updateMatrixWorld(true);
     pivot.attach(byId[LCD_ID]);
     const glass = new THREE.Mesh(new THREE.PlaneGeometry((LCD_GLASS.x1 - LCD_GLASS.x0) / 1000, (LCD_GLASS.y1 - LCD_GLASS.y0) / 1000), new THREE.MeshBasicMaterial({ color: 0x222222 }));
-    glass.position.copy(v3((LCD_GLASS.x0 + LCD_GLASS.x1) / 2 + LCD_SHIFT_X, (LCD_GLASS.y0 + LCD_GLASS.y1) / 2, LCD_GLASS.z));
+    glass.position.copy(v3((LCD_GLASS.x0 + LCD_GLASS.x1) / 2, (LCD_GLASS.y0 + LCD_GLASS.y1) / 2, LCD_GLASS.z));
     glass.rotation.y = Math.PI;                                     // face the front (-z)
     scene.add(glass); pivot.attach(glass);
     new THREE.TextureLoader().load("screen.png", (tex) => { tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4; glass.material = new THREE.MeshBasicMaterial({ map: tex, toneMapped: false }); dirty = true; run(); });
@@ -467,15 +443,6 @@ loadModel().then((gltf) => {
     head.traverse((o) => { if (!plugs[j] && /kablo/i.test(o.name)) plugs[j] = o; });
     if (plugs[j]) nudge(plugs[j], 0, -PLUG_DROP, 0);
   });
-  if (byId[SIDE_COVER_ID]) {
-    const m = new THREE.Group();
-    m.matrixAutoUpdate = false;
-    m.matrix.makeTranslation(2 * DOCK_MIRROR_X / 1000, 0, 0).multiply(new THREE.Matrix4().makeScale(-1, 1, 1));
-    zGroup.add(m);
-    const part = byId[SIDE_COVER_ID], copy = part.clone(true);
-    part.matrixWorld.decompose(copy.position, copy.quaternion, copy.scale);
-    m.add(copy);
-  }
   for (const pair of CAP_PAIRS) {
     const parts = pair.map((id) => byId[id]).filter(Boolean);
     if (!parts.length) continue;
