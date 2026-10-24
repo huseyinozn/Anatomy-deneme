@@ -279,9 +279,9 @@ async function addPeiArt() {
   // front tab: small logo
   drawLogo(W / 2, 318, 27);
   const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
-  const art = new THREE.Mesh(new THREE.PlaneGeometry(W / 1000, H / 1000), new THREE.MeshStandardMaterial({ map: tex, transparent: true, roughness: 0.8, polygonOffset: true, polygonOffsetFactor: -2 }));
+  const art = new THREE.Mesh(new THREE.PlaneGeometry(W / 1000, H / 1000), new THREE.MeshStandardMaterial({ map: tex, transparent: true, roughness: 0.8, polygonOffset: true, polygonOffsetUnits: -4 }));   // units only: a slope factor pulls the art through the head and print at grazing angles
   art.rotation.set(-Math.PI / 2, 0, Math.PI);                     // lie flat; canvas top towards the back, readable from the front
-  art.position.copy(v3((PEI_SHEET.x0 + PEI_SHEET.x1) / 2, PEI_TOP + 0.05, (PEI_SHEET.z0 + PEI_SHEET.z1) / 2));
+  art.position.copy(v3((PEI_SHEET.x0 + PEI_SHEET.x1) / 2, PEI_TOP + 0.15, (PEI_SHEET.z0 + PEI_SHEET.z1) / 2));
   bedGroup.add(art); dirty = true; run();
 }
 function addSpools() {
