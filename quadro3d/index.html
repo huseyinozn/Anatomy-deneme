@@ -257,6 +257,15 @@ async function addPeiArt() {
   g.fillStyle = ink; g.strokeStyle = ink; g.textBaseline = "middle"; g.lineJoin = "round";
   const tri = (x, y, s) => { g.beginPath(); g.moveTo(x, y - s * 0.6); g.lineTo(x + s * 0.6, y + s * 0.45); g.lineTo(x - s * 0.6, y + s * 0.45); g.closePath(); g.fill(); };
   const text = (t, x, y, w, px, align = "left", spacing = 0) => { g.font = font(w, px); g.textAlign = align; g.letterSpacing = spacing + "px"; g.fillText(t, x, y); };
+  // textured PEI: a fine scatter of bright and dark grains under the print
+  g.save(); g.setTransform(1, 0, 0, 1, 0, 0);
+  for (let i = 0; i < 90000; i++) {
+    const x = Math.random() * cv.width, y = Math.random() * cv.height, light = Math.random() < 0.55;
+    g.fillStyle = light ? "rgba(255,240,200," + (0.06 + Math.random() * 0.12) + ")" : "rgba(60,45,20," + (0.05 + Math.random() * 0.1) + ")";
+    g.fillRect(x, y, 1.6, 1.6);
+  }
+  g.restore();
+  g.fillStyle = ink;
   // centre: logo and QUADRO
   drawLogo(W / 2, 142, 62);
   text("QUADRO", W / 2, 163, "600", 21, "center", 0.6);
@@ -307,7 +316,36 @@ function buildRuns() {
     const r = { ptfe: new THREE.Mesh(undefined, ptfeMat), fil: new THREE.Mesh(undefined, fil), cable: new THREE.Mesh(undefined, cableMat), key: "" };
     scene.add(r.ptfe, r.fil, r.cable); runs.push(r);
   }
+  addGrommets();
+  scene.add(bedCable);
   updateRuns();
+}
+// rubber grommets and brass push-fits where cables and PTFE enter the side covers and the head tops
+function addGrommets() {
+  const rubber = new THREE.MeshStandardMaterial({ color: 0x111214, roughness: 0.7 }), brass = new THREE.MeshStandardMaterial({ color: 0xb08d57, roughness: 0.3, metalness: 0.85 });
+  const ring = (parent, x, y, z, r, t, m, oval = 1) => { const o = new THREE.Mesh(new THREE.TorusGeometry(r / 1000, t / 1000, 10, 28), m); o.rotation.x = -Math.PI / 2; o.scale.x = oval; o.position.copy(v3(x, y, z)); parent.add(o); };
+  const fit = (parent, x, y, z) => { const o = new THREE.Mesh(new THREE.CylinderGeometry(0.0045, 0.0045, 0.004, 24, 1, true), brass); o.position.copy(v3(x, y + 1.5, z)); parent.add(o); ring(parent, x, y + 3.5, z, 4.5, 0.9, brass); };
+  for (const H of Object.values(COVER_HOLES)) {
+    for (const z of H.ptfe) fit(zGroup, H.x, H.top, z);
+    for (const z of H.cable) ring(zGroup, H.cx, H.top + 0.6, z, 4.6, 1.3, rubber, 1.35);
+  }
+  headGroups.forEach((g, j) => {
+    const hx = -SX0[j];
+    ring(g, hx, 187.6, INLET[1], 4.2, 1.1, rubber);
+    ring(g, hx, 187.6, PLUG[1], 5, 1.3, rubber, 1.4);
+  });
+}
+// the heated bed's braided cable: from the strain relief at the back of the bed, looping down into the base
+const bedCable = new THREE.Mesh(undefined, new THREE.MeshStandardMaterial({ color: 0x18191b, roughness: 0.85 }));
+const BED_RELIEF = [130, 19.6, 521], BASE_ENTRY = [118, -28, 425];
+let bedCableKey = "";
+function updateBedCable() {
+  const tz = bedGroup.position.z * 1000, key = tz.toFixed(1);
+  if (key === bedCableKey) return;
+  bedCableKey = key;
+  const [bx, by, bz] = BED_RELIEF, [ex, ey, ez] = BASE_ENTRY, z0 = bz + tz;
+  const sag = Math.max(ez + 40, z0 + 45);
+  tube(bedCable, [v3(bx, by, z0), v3(bx, by - 2, z0 + 25), v3((bx + ex) / 2, (by + ey) / 2 - 20, sag), v3(ex, ey + 8, ez + 30), v3(ex, ey, ez)], 4.5);
 }
 function tube(mesh, pts, radius) {
   const curve = new THREE.CatmullRomCurve3(pts, false, "centripetal");
@@ -530,6 +568,9 @@ function addRoom() {
   mug(dk.x1 - 0.14, top, dk.z0 + 0.16);
   spool(dk.x0 + 0.14, top, dk.z1 - 0.15, 0x2fa868, 0.1, true); spool(dk.x0 + 0.14, top + 0.068, dk.z1 - 0.15, 0xe9e6df, 0.1, true);
   chair(cx + 0.38, floor, dk.z0 - 0.26);
+  // mains cable from the back of the base, over the back edge of the desk to the floor
+  const cord = new THREE.Mesh(undefined, mat(0x18191b, 0.7)); roomGroup.add(cord);
+  tube(cord, [v3(-60, -45, 432), v3(-62, -60, 462), v3(-90, top * 1000 + 3, 520), v3(-120, top * 1000 + 3, dk.z1 * 1000 - 20), v3(-130, top * 1000 - 20, dk.z1 * 1000 + 25), v3(-140, floor * 1000 + 6, dk.z1 * 1000 + 60), v3(-150, floor * 1000 + 3, dk.z1 * 1000 + 160)], 3);
   const y = top + 0.0008;
   const deskLabel = textPlane(["IKEA LINNMON desk", "150 × 75 cm"], 0.2, "#6b6d72");
   deskLabel.rotation.set(-Math.PI / 2, 0, Math.PI); deskLabel.position.set((fp.x1 + dk.x1) / 2 + 0.02, y + 0.0004, cz + 0.05); roomGroup.add(deskLabel);
@@ -714,7 +755,7 @@ function draw() {
   headGroups.forEach((g, j) => (g.position.x = -(sx[j] - SX0[j]) / 1000));
   bedGroup.position.z = (NOZZLE_Z - (PRINT_Z0 + ny)) / 1000;
   zGroup.position.y = ((layer + 1) * LAYER_H - NOZZLE_DROP) / 1000;
-  if (runs.length) { updateRuns(); pressCaps(); }
+  if (runs.length) { updateRuns(); pressCaps(); updateBedCable(); }
   dirty = true;
 }
 
