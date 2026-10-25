@@ -2,7 +2,7 @@
 // The page posts { question, history, state }; the worker asks Claude with the API key kept as the
 // ANTHROPIC_API_KEY secret and returns { answer }. Only the listed origins may call it.
 const ORIGINS = ["https://huseyinozn.github.io", "null"];   // "null": the single-file copy opened from disk
-const MODEL = "claude-haiku-5-5", MAX_TOKENS = 1200, MAX_QUESTION = 600, MAX_TURNS = 6;
+const MODEL = "claude-haiku-5-5", MAX_TOKENS = 1500, MAX_QUESTION = 600, MAX_TURNS = 6;
 const PER_IP = { limit: 20, windowMs: 60 * 60 * 1000 };       // questions per visitor per hour (per worker instance)
 
 const SYSTEM = `You are the assistant on the interactive 3D page of the Co Print Quadro, a desktop 3D printer.
@@ -58,7 +58,9 @@ export default {
       method: "POST",
       headers: { "x-api-key": env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
       body: JSON.stringify({
-        model: MODEL, max_tokens: MAX_TOKENS,
+        // Haiku 5.5 thinks by default and its thinking eats into max_tokens, cutting answers off at random;
+        // short product answers don't need it
+        model: MODEL, max_tokens: MAX_TOKENS, thinking: { type: "disabled" },
         system: SYSTEM + (state ? "\n\nCurrent state of the simulation on the visitor's screen:\n" + state : ""),
         messages: [...history, { role: "user", content: question }],
       }),
