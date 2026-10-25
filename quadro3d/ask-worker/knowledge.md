@@ -13,12 +13,12 @@ answer from it.
   356.5, 412.75, 469. Carriages must keep at least 56.25 mm between neighbours (min_clearance).
 - Each Qdock slot has a spring-loaded silicone nozzle closer (cap) that a parked nozzle presses down.
 - Two kinds of load cell, both ADS1220:
-  1. The Z probe: [load_cell_probe] in the first toolhead's head board (chroma_head_1.cfg, MCU cp_Head_1). The nozzle
-     itself touches the bed and the load cell in the head triggers at trigger_force 25 g (sample_rate 600,
-     counts_per_gram 48.31, force_safety_limit 2000 g). Homing Z, PROBE and the bed mesh use it.
-  2. The bed pin: [load_cell bed_pin], a load cell under a small pin in the bed. Nozzles touch the pin from above and
-     from the sides; it is used for tool offset calibration (bed_pin_calibration), the axis slip test and pressure
-     advance work.
+  1. The Z probe: [load_cell_probe] in T0's head (chroma_head_1.cfg, MCU cp_Head_1). T0's nozzle itself touches the
+     bed and the load cell in the head triggers at trigger_force 25 g (sample_rate 600, counts_per_gram 48.31,
+     force_safety_limit 2000 g). Z homing, PROBE and the bed mesh are done with T0 on this probe.
+  2. The second probe, bed_pin: [load_cell bed_pin], a load cell under a small pin in the bed. Its purpose is bed pin
+     calibration: every tool's nozzle touches the pin from above and from the sides, which gives each tool's X/Y/Z
+     offset. The axis slip test reuses the same pin touches.
 - Each toolhead also has its own ADXL345 accelerometer (t0..t3) for input shaper calibration.
 - Per-toolhead "chroma head" MCUs and LED strips (coprint_leds) show tool state.
 
@@ -79,7 +79,8 @@ Detects lost steps (belt/motor slip) on X or Y at a given acceleration.
   probing repeatability itself).
 
 ## Bed mesh (quadro_bed_mesh)
-QUADRO_CUSTOM_BED_MESH [PROFILE=default] [REPEATS=2]: probes with the nozzle load cell probe (not the bed pin), with a
+QUADRO_CUSTOM_BED_MESH [PROFILE=default] [REPEATS=2]: probes with T0 on the load cell probe in its head (not the bed
+pin), with a
 mechanical settle and a manual load cell tare before every point. It runs complete probing passes over the
 configured mesh (e.g. 9x9), averages every point across the passes, and builds one mesh from the averages (less noise than a
 single pass). QUADRO_BED_MESH_CALIBRATE / CALIBRATE_BED_MESH macros wrap it with homing and heating.
