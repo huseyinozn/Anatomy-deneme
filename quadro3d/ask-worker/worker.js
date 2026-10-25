@@ -3,7 +3,7 @@
 // ANTHROPIC_API_KEY secret and returns { answer }. Cloudflare redeploys it on every push to master (Workers Builds).
 // Everything that may change (system prompt, model, limits, allowed sites) lives in ask-config.json, published next
 // to the page on GitHub Pages and re-read every few minutes, so updating the assistant never means redeploying this.
-// knowledge.md (guide + Co Print's Klipper modules + printer config, built by build-knowledge.py) is bundled as text
+// knowledge.md (guide + Quadro software modules + printer config, built by build-knowledge.py) is bundled as text
 import KNOWLEDGE from "./knowledge.md";
 
 const CONFIG_URL = "https://huseyinozn.github.io/quadro-3d/ask-config.json";

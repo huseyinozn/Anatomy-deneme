@@ -1,11 +1,11 @@
 # Quadro knowledge guide
 
-This guide sums up how the Co Print Quadro's software works. The complete source of Co Print's own Klipper modules and
+This guide sums up how the Co Print Quadro's software works. The source of Quadro's software modules and
 the printer's configuration and macros follow it; when a question goes deeper than the guide, read the code below and
 answer from it.
 
 ## Machine layout
-- Four toolheads T0..T3, each on its own X carriage (carriage_t0..carriage_t3) on one shared X beam. Klipper's
+- Four toolheads T0..T3, each on its own X carriage (carriage_t0..carriage_t3) on one shared X beam. The
   generic_cartesian kinematics with dual_carriage groups drives them; one carriage is "primary" (the active tool) at a
   time, the others can be moved with SET_DUAL_CARRIAGE / the parallel move module.
 - Y moves the bed (shared by all tools), Z moves the X beam.
@@ -80,12 +80,12 @@ Detects lost steps (belt/motor slip) on X or Y at a given acceleration.
 
 ## Bed mesh (quadro_bed_mesh)
 QUADRO_CUSTOM_BED_MESH [PROFILE=default] [REPEATS=2]: probes with the nozzle load cell probe (not the bed pin), with a
-mechanical settle and a manual load cell tare before every point. It runs complete probing passes over Klipper's
-configured mesh (e.g. 9x9), averages every point across the passes, and builds one Klipper mesh from the averages (less noise than a
+mechanical settle and a manual load cell tare before every point. It runs complete probing passes over the
+configured mesh (e.g. 9x9), averages every point across the passes, and builds one mesh from the averages (less noise than a
 single pass). QUADRO_BED_MESH_CALIBRATE / CALIBRATE_BED_MESH macros wrap it with homing and heating.
 
 ## Input shaper (quadro_input_shaper)
-QUADRO_SHAPER_CALIBRATE measures resonances per carriage with each toolhead's own ADXL345 by reusing Klipper's
+QUADRO_SHAPER_CALIBRATE measures resonances per carriage with each toolhead's own ADXL345 with the
 resonance tester and shaper calibration. X is measured on every carriage (each has its own mass); Y is shared by all
 tools, so it is measured once on the first carriage. Results go under [quadro_input_shaper] (shaper_type_x_<carriage>,
 shaper_freq_x_<carriage>, shaper_type_y / shaper_freq_y) because stock [input_shaper] cannot hold per-carriage values
@@ -102,8 +102,8 @@ wait (M400, TEMPERATURE_WAIT). Commands: TH_SET_FILAMENT LED_NAME= HEX= (filamen
 TH_LOADING_START / TH_LOADING_END, PRINT_STATE_START / PRINT_STATE_TOOLCHANGE EXTRUDER_INDEX= / PRINT_STATE_END,
 START_WHITE_WAVE / STOP_WHITE_WAVE.
 
-## Load cell probe (load_cell_probe, modified Klipper module)
-Klipper's load cell probe with Co Print changes, used for the nozzle-contact Z probe in the head. The bed pin is a
+## Load cell probe (load_cell_probe)
+The load cell probe module, used for the nozzle-contact Z probe in the head. The bed pin is a
 separate load cell (LOAD_CELL=bed_pin) read with LOAD_CELL_TARE and force readings in grams.
 
 ## Printing flow (macros)
@@ -119,7 +119,7 @@ heaters and the bed mesh are simulated. The load cell and accelerometers are not
 the simulation, bed pin results come from the printer's stored calibration files, and shaper results from saved config
 values. On the real printer these come from real measurements.
 
-# Source: Co Print Klipper modules (klippy/extras)
+# Source: Quadro software modules (klippy/extras)
 
 ## quadro_parallel_carriage.py
 ```python

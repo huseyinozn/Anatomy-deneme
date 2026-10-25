@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Build knowledge.md, the reference the Ask worker gives Claude: guide.md, then Co Print's own Klipper modules and the
+"""Build knowledge.md, the reference the Ask worker gives Claude: guide.md, then Quadro's software modules and the
 printer's configuration and macros. Wiring (pins, serial ports, MCU ids) is left out.
 Usage: build-knowledge.py <klipper download dir with klippy/ and printer_data/config/>"""
 import pathlib, re, sys
 
 src = pathlib.Path(sys.argv[1])
 here = pathlib.Path(__file__).parent
-# pa_autotune, coprint_leds, quadro_input_shaper and load_cell_probe (mostly stock Klipper) are covered by the guide only, keeping the whole
+# pa_autotune, coprint_leds, quadro_input_shaper and load_cell_probe are covered by the guide only, keeping the whole
 # reference under the 100K-token prompt size above which the model is billed at a higher rate
 MODULES = ["quadro_parallel_carriage.py", "bed_pin_calibration.py", "axis_slip_test.py", "quadro_bed_mesh.py",
            ]
@@ -17,7 +17,7 @@ WIRING = re.compile(r"^\s*#?\s*(serial|canbus_uuid|uuid|[a-z_]*pins?|cs_pin|spi_
 WIRED_PATH = re.compile(r"/dev/serial|usb-0:")
 
 out = [(here / "guide.md").read_text()]
-out.append("\n# Source: Co Print Klipper modules (klippy/extras)\n")
+out.append("\n# Source: Quadro software modules (klippy/extras)\n")
 for name in MODULES:
     out.append("\n## %s\n```python\n%s\n```\n" % (name, (src / "klippy" / name).read_text().rstrip()))
 out.append("\n# Source: printer configuration and macros (printer_data/config, wiring removed)\n")
