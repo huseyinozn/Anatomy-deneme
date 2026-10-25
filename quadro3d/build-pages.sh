@@ -18,5 +18,6 @@ mkdir -p "$OUT"
 } > "$OUT/index.html"
 grep -q 'MODEL_URL = "quadro.glb"' "$OUT/index.html"
 cp quadro.glb screen.png logo.svg klipper.js jinja.js printer-config.json "$OUT/"
+cp ask-worker/ask-config.json "$OUT/"   # settings the Ask worker re-reads (prompt, model, limits)
 touch "$OUT/.nojekyll"
 echo "built $OUT"
