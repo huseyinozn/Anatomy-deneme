@@ -73,13 +73,13 @@ button[data-play] { min-width: 104px; font-weight: 600; }
     </div>
     <div class="sliders">
       <label>Animasyon hızı <output></output><input id="s-scale" type="range" data-cfg="scale" min="0.05" max="10" step="0.05"></label>
-      <label>Baskı hızı (mm/s) <output></output><input id="s-print" type="range" data-cfg="print" min="30" max="400" step="10"></label>
-      <label>X maks. hız (mm/s) <output></output><input id="s-vx" type="range" data-cfg="vx" min="100" max="1500" step="50"></label>
-      <label>X ivme (mm/s²) <output></output><input id="s-ax" type="range" data-cfg="ax" min="500" max="20000" step="500"></label>
-      <label>Y tabla maks. hız (mm/s) <output></output><input id="s-vy" type="range" data-cfg="vy" min="100" max="1500" step="50"></label>
-      <label>Y tabla ivme (mm/s²) <output></output><input id="s-ay" type="range" data-cfg="ay" min="500" max="20000" step="500"></label>
+      <label>Baskı hızı (mm/s) <output></output><input id="s-print" type="range" data-cfg="print" min="30" max="500" step="10"></label>
+      <label>Takım değişimi hızı, SPEED (mm/s) <output></output><input id="s-tcv" type="range" data-cfg="tcSpeed" min="50" max="500" step="10"></label>
+      <label>Takım değişimi ivmesi (mm/s²) <output></output><input id="s-tca" type="range" data-cfg="tcAccel" min="1000" max="10000" step="500"></label>
+      <label>Gezinme hızı (mm/s) <output></output><input id="s-tv" type="range" data-cfg="travel" min="50" max="500" step="10"></label>
+      <label>Baskı ve gezinme ivmesi (mm/s²) <output></output><input id="s-acc" type="range" data-cfg="accel" min="1000" max="10000" step="500"></label>
     </div>
-    <p class="note">Geometri, SolidWorks montajının (Quadro_19_05-12-07) STEP çıktısından geliyor; web için sadeleştirildi. Bu eski revizyondaki fazla dört kafa ve X rayındaki boşta duran MGN12 arabası gizlendi; ekran 45°'ye yatırıldı; filament tutucu ikinci dikmeye aynalandı. Qdock'taki yaylı silikon nozul kapakları, nozul üstlerine geldiğinde 2,5 mm basılır. Makaralar, PTFE ve kafa kabloları montajda olmadığı için temsili çizildi: PTFE kafadan X yan kapağına, oradan filament tutucuya ve makaraya gider. Basılan parça Snapmaker Space'teki "Alignment Test Cube" (CC0), fotoğraflarından yeniden kuruldu: 20 mm küp, 2 × 2 blok, 4 kat, katman 0,2 mm. Hareket mantığı benim modelim; hız ve ivme değerleri varsayımdır. Masa: IKEA LINNMON 150 × 75 cm masa üstü, ADILS ayaklarla 74 cm. Odadaki diğer eşyalar ölçek için temsilidir.</p>
+    <p class="note">Geometri, SolidWorks tam montajının STEP çıktısından geliyor; güncel enjeksiyon ve alüminyum parçalar ayrı dosyalarından yerine kondu, web için sadeleştirildi. Montajdaki fazla dört kafa gizlendi; ekran 45°'ye yatırıldı. Qdock'taki yaylı silikon nozul kapakları, nozul üstlerine geldiğinde 2,5 mm basılır. Hareketler makinenin kendi ayarlarından: printer.cfg (maks. hız 500 mm/s, ivme 10000 mm/s², köşe hızı 5 mm/s, Z 20 mm/s ve 500 mm/s²) ve cp_macro.cfg'deki takım değişimi makroları (ivme 7000, önce Z +0,4 mm, sonra QUADRO_PARALLEL_MOVE ile Z +3 mm, SPEED=350, Qdock konumları ve 10 mm yaklaşma payları). Paralel hareket, klippy/extras/quadro_parallel_carriage.py'deki "method B" planı ile hesaplanır: her kafa, Y ve Z kendi trapez profiliyle aynı anda kalkar; gelen kafa en yavaş eksenle aynı anda varacak kadar geç kalkar. Baskı yolları Klipper'ın köşe hızı ve ileri bakış (lookahead) hesabıyla oynatılır; minimum_cruise_ratio, input shaper ve ekstrüzyon sınırları modellenmedi. Varsayımlar: baskı hızı, takım değişiminden sonra Z'nin baskı yüksekliğine inişi (20 mm/s) ve purge tower (OrcaSlicer varsayılanları: 35 mm genişlik, takım değişimi başına 45 mm³, tablanın sol arka köşesinde). Makaralar, PTFE ve kafa kabloları montajda olmadığı için temsili çizildi. Basılan parça Snapmaker Space'teki "Alignment Test Cube" (CC0), fotoğraflarından yeniden kuruldu: 20 mm küp, 2 × 2 blok, 4 kat, katman 0,2 mm. Masa: IKEA LINNMON 150 × 75 cm masa üstü, ADILS ayaklarla 74 cm. Odadaki diğer eşyalar ölçek için temsilidir.</p>
   </div>
 </div>
 
@@ -95,9 +95,18 @@ import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 // Seen from the front, +x is on the viewer's left, so "sx" = -x is the left-to-right screen coordinate.
 const HEAD_IDS = ["NAUO10", "NAUO11", "NAUO16", "NAUO17"];   // Tool 0..3, left to right from the front
 const SX0 = [-347.5, -291.5, 234.5, 290.5];                     // their nozzle sx in the export
-const LP = [-347.5, -291.5, -235.5];                            // left Qdock slots L1..L3 (Tool 0, 1, 2)
-const RP = [178.5, 234.5, 290.5];                               // right Qdock slots R1..R3 (Tool 1, 2, 3)
-const PRINT_SX0 = -178.5;                                       // print area left edge in sx (300 mm wide)
+const PRINT_SX0 = -178.5;                                       // printer X = 0 (left edge of the 300 mm print area) in sx
+// ---------- the printer's configuration (printer_data/config: printer.cfg, cp_macro.cfg) ----------
+const LIMITS = { v: 500, a: 10000, scv: 5, vz: 20, az: 500 };   // [printer] max_velocity, max_accel, square_corner_velocity, max_z_*
+const X_PARK_L = [-169, -112.75, -56.5], X_PARK_R = [356.5, 412.75, 469];   // Qdock carriage positions (printer X) the macros park at
+const LP = X_PARK_L.map((x) => x + PRINT_SX0);                  // left Qdock slots L1..L3 (Tool 0, 1, 2) in sx
+const RP = X_PARK_R.map((x) => x + PRINT_SX0);                  // right Qdock slots R1..R3 (Tool 1, 2, 3) in sx
+// zero_T1 ... three_T2: SET_VELOCITY_LIMIT ACCEL=7000, G1 Z+0.4, QUADRO_PARALLEL_MOVE ... Z=start+3 SPEED=350 ARRIVING=Tn
+const TC = { speed: 350, accel: 7000, hopPre: 0.4, hop: 3 };
+// Some macros send the arriving tool 10 mm short of the slicer's X (zero_T3, one_T3: +10; two_T0, three_T0: -10).
+const APPROACH = { "0>3": 10, "1>3": 10, "2>0": -10, "3>0": -10 };
+// Prime tower (slicer side, not in the printer config): OrcaSlicer defaults, 35 mm wide and 45 mm³ per toolchange.
+const PURGE_VOL = 45;
 const NOZZLE_Z = 176.15, PRINT_Z0 = 174.2, PEI_TOP = 31.0, NOZZLE_DROP = 14.2;
 const BED_IDS = ["NAUO267", "NAUO343", "NAUO345", "NAUO336"];                     // bed, Y carriages, belt clamp
 const Z_IDS = ["NAUO3", "NAUO178", "NAUO193", "NAUO196", "NAUO197", "NAUO177", "NAUO194"];   // X axis, Z carriers, bearings, lead-screw nuts
@@ -158,9 +167,12 @@ function layerJobs(layer, first) {
 const lengthOf = (p) => p.slice(1).reduce((s, q, i) => s + Math.hypot(q[0] - p[i][0], q[1] - p[i][1]), 0);
 const pointAlong = (p, d) => { for (let i = 1; i < p.length; i++) { const L = Math.hypot(p[i][0] - p[i - 1][0], p[i][1] - p[i - 1][1]); if (d <= L) { const f = L ? d / L : 0; return [p[i - 1][0] + (p[i][0] - p[i - 1][0]) * f, p[i - 1][1] + (p[i][1] - p[i - 1][1]) * f]; } d -= L; } return p[p.length - 1]; };
 
-const cfg = { vx: 600, ax: 7000, vy: 400, ay: 7000, print: 350, scale: 1 };
-let sx = SX0.slice(), ny = 2, active = -1, phase = { kind: "idle" };
-let layer = 0, jobs = layerJobs(0, -1), jobAt = 0, done = new Set(), stats = { changes: 0, time: 0 };
+const TOWER = { x0: 12, y0: 255, w: 35 };                        // back left corner of the bed (printer X, Y)
+const BAND_D = Math.ceil(PURGE_VOL / (LINE_W * LAYER_H * TOWER.w)) * LINE_W;   // one toolchange's purge, mm deep
+// travel: PHYS_TOOL_n ends with G1 F18000, so moves after a toolchange run at 300 mm/s until the slicer sets a feed
+const cfg = { tcSpeed: TC.speed, tcAccel: TC.accel, travel: 300, accel: LIMITS.a, print: 350, scale: 1 };
+let sx = [LP[0], LP[1], RP[1], RP[2]], ny = 2, hop = 0, active = -1, phase = { kind: "idle" };
+let layer = 0, jobs = layerJobs(0, -1), jobAt = 0, done = new Set(), stats = { changes: 0, time: 0, purge: 0 };
 let playing = !matchMedia("(prefers-reduced-motion: reduce)").matches;
 const fmt = (v, n = 0) => v.toFixed(n).replace(".", ",").replace("-", "−");
 
@@ -619,77 +631,166 @@ function setView(name, instant) {
   run();
 }
 
-// ---------- motion ----------
-function solo(d, v, a) { d = Math.abs(d); if (d < 1e-6) return { T: 0, f: 0.5 }; if (d > (v * v) / a) { const T = d / v + v / a; return { T, f: v / a / T }; } return { T: 2 * Math.sqrt(d / a), f: 0.5 }; }
-const commonT = (axes, f) => Math.max(...axes.map(({ d, v, a }) => { d = Math.abs(d); return Math.max(d / (v * (1 - f)), Math.sqrt(d / (a * f * (1 - f)))); }));
-function ease(t, T, f) { if (T <= 0 || t >= T) return 1; if (t <= 0) return 0; const ta = f * T, vn = 1 / (T - ta), an = vn / ta; if (t < ta) return 0.5 * an * t * t; if (t < T - ta) return 0.5 * an * ta * ta + vn * (t - ta); return 1 - 0.5 * an * (T - t) * (T - t); }
+// ---------- motion: the printer's own rules ----------
+// Klipper's trapezoid (klippy/extras/quadro_parallel_carriage.py make_profile): accelerate, cruise, decelerate.
+function profile(start, target, speed, accel) {
+  const d = Math.abs(target - start), peak = d ? Math.min(speed, Math.sqrt(d * accel)) : 0;
+  const ta = peak ? peak / accel : 0, tc = peak ? Math.max(0, d / peak - ta) : 0;
+  return { start, target, accel, peak, ta, tc, delay: 0, T: 2 * ta + tc };
+}
+function posAt(p, t) {
+  const u = t - p.delay, s = Math.sign(p.target - p.start);
+  if (u <= 0 || !p.peak) return p.start;
+  if (u >= p.T) return p.target;
+  if (u < p.ta) return p.start + s * p.accel * u * u / 2;
+  if (u < p.ta + p.tc) return p.start + s * (p.peak * p.ta / 2 + p.peak * (u - p.ta));
+  const r = p.T - u;
+  return p.target - s * p.accel * r * r / 2;
+}
+// QUADRO_PARALLEL_MOVE "method B": every carriage, Y and Z get their own trapezoid and start at once,
+// except the arriving tool, which leaves late so it lands exactly when the slowest axis finishes.
+function parallelPlan(targets, arriving, y1, z1) {
+  const v = Math.min(cfg.tcSpeed, LIMITS.v), a = cfg.tcAccel;
+  const ps = sx.map((x, j) => profile(x, targets[j], v, a));
+  const py = profile(ny, y1, v, a), pz = profile(hop, z1, Math.min(v, LIMITS.vz), Math.min(a, LIMITS.az));
+  const T = Math.max(py.T, pz.T, ...ps.map((p) => p.T));
+  if (ps[arriving].T) ps[arriving].delay = T - ps[arriving].T;
+  return { ps, py, pz, T };
+}
+// Klipper's lookahead for a polyline: junction speeds from square_corner_velocity, then backward/forward passes.
+// minimum_cruise_ratio smoothing, input shaping and extrusion limits are not modelled.
+function planPath(pts, v, a) {
+  const jd = LIMITS.scv ** 2 * (Math.SQRT2 - 1) / a, segs = [];
+  for (let i = 1; i < pts.length; i++) {
+    const dx = pts[i][0] - pts[i - 1][0], dy = pts[i][1] - pts[i - 1][1], L = Math.hypot(dx, dy);
+    if (L > 1e-6) segs.push({ x0: pts[i - 1][0], y0: pts[i - 1][1], ux: dx / L, uy: dy / L, L, max2: 0 });
+  }
+  for (let i = 1; i < segs.length; i++) {
+    const p = segs[i - 1], s = segs[i], c = -(p.ux * s.ux + p.uy * s.uy);
+    if (c > 0.999999) continue;                                     // full reversal: stop
+    const cos = Math.max(c, -0.999999), sd2 = Math.sqrt(0.5 * (1 - cos)), R = sd2 / (1 - sd2), td2 = sd2 / Math.sqrt(0.5 * (1 + cos));
+    s.max2 = Math.min(R * jd * a, 0.5 * s.L * td2 * a, 0.5 * p.L * td2 * a, v * v);
+  }
+  let end2 = 0;
+  for (let i = segs.length - 1; i >= 0; i--) { segs[i].e2 = end2; end2 = segs[i].s2 = Math.min(segs[i].max2, end2 + 2 * a * segs[i].L); }
+  let t = 0, d = 0, prev2 = 0;
+  for (const s of segs) {
+    s.s2 = Math.min(s.s2, prev2); s.e2 = Math.min(s.e2, s.s2 + 2 * a * s.L);
+    const vs = Math.sqrt(s.s2), ve = Math.sqrt(s.e2), vc = Math.sqrt(Math.min(v * v, (s.s2 + s.e2) / 2 + a * s.L));
+    const da = (vc * vc - s.s2) / (2 * a), dd = (vc * vc - s.e2) / (2 * a);
+    Object.assign(s, { vs, ve, vc, a, ta: (vc - vs) / a, tc: Math.max(0, (s.L - da - dd) / vc), td: (vc - ve) / a, da, t0: t, d0: d });
+    t += s.ta + s.tc + s.td; d += s.L; prev2 = s.e2;
+  }
+  return { segs, T: t, L: d };
+}
+function pathAt(plan, t) {
+  let lo = 0, hi = plan.segs.length - 1;
+  while (lo < hi) { const m = (lo + hi + 1) >> 1; if (plan.segs[m].t0 <= t) lo = m; else hi = m - 1; }
+  const s = plan.segs[lo]; if (!s) return 0;
+  const u = Math.max(0, t - s.t0);
+  let d;
+  if (u < s.ta) d = s.vs * u + s.a * u * u / 2;
+  else if (u < s.ta + s.tc) d = s.da + s.vc * (u - s.ta);
+  else { const w = Math.min(u - s.ta - s.tc, s.td); d = s.da + s.vc * s.tc + s.vc * w - s.a * w * w / 2; }
+  return s.d0 + Math.min(d, s.L);
+}
+
+// Prime tower at the back left of the bed: after every toolchange the new tool fills one band of it.
+const towerBand = (b) => [TOWER.y0 + b * BAND_D, TOWER.y0 + (b + 1) * BAND_D];
+function towerPath(layer, b) {
+  const [y0] = towerBand(b), pts = [], n = Math.round(BAND_D / LINE_W);
+  for (let i = 0; i < n; i++) {
+    const y = y0 + (i + 0.5) * LINE_W, [u, v] = (i + layer) % 2 ? [TOWER.x0 + TOWER.w, TOWER.x0] : [TOWER.x0, TOWER.x0 + TOWER.w];
+    pts.push([u, y], [v, y]);
+  }
+  return pts;
+}
 
 const changeEl = document.getElementById("change");
-function startMove(next, [px, py]) {
-  const to = sx.map((_, j) => (j < next ? LP[j] : j > next ? RP[j - 1] : PRINT_SX0 + px));
-  const axes = to.map((t, j) => ({ d: t - sx[j], v: cfg.vx, a: cfg.ax })).concat([{ d: py - ny, v: cfg.vy, a: cfg.ay }]);
-  const lead = axes.map((x) => solo(x.d, x.v, x.a)).reduce((m, s) => (s.T > m.T ? s : m), { T: 0, f: 0.5 });
-  const T = commonT(axes, lead.f), vn = T > 0 ? 1 / (T - lead.f * T) : 0;
-  const swap = next !== active;
-  phase = { kind: "change", t: 0, T, f: lead.f, from: sx.slice(), to, y0: ny, y1: py, prev: active, next, swap };
-  if (swap) {
-    if (active >= 0) stats.changes++;
-    active = next; setActive(next);
-    const names = ["T0", "T1", "T2", "T3", "Y tabla"];
-    const moves = axes.map((x, i) => (Math.abs(x.d) < 0.5 ? null : names[i] + " " + (x.d > 0 ? "+" : "") + fmt(x.d) + " mm (tepe " + fmt(Math.abs(x.d) * vn) + " mm/s)")).filter(Boolean);
-    changeEl.innerHTML = "<b>Son takım değişimi: " + (phase.prev < 0 ? "başlangıç" : "T" + phase.prev) + " → T" + next + " · " + fmt(T, 2) + " s</b><br>" + moves.join(" · ");
-  }
+let queue = [], bandAt = 0;
+const phys = (x) => x - PRINT_SX0;                                  // sx -> printer X
+function changePhases(next, [px, py]) {
+  const prev = active, approach = APPROACH[prev + ">" + next] || 0;
+  const tc = { prev, next, t: 0, T: 0 };
+  const lift = { kind: "change", tc, begin() { this.p = profile(hop, TC.hopPre, LIMITS.vz, Math.min(cfg.tcAccel, LIMITS.az)); this.T = this.p.T; tc.T += this.T; },
+    run(t) { hop = posAt(this.p, t); } };
+  const move = { kind: "change", tc, begin() {
+      const to = sx.map((_, j) => (j < next ? LP[j] : j > next ? RP[j - 1] : PRINT_SX0 + px + approach));
+      this.plan = parallelPlan(to, next, py, prev < 0 ? hop : TC.hop); this.T = this.plan.T; tc.T += this.T;
+      const names = ["T0", "T1", "T2", "T3"], vn = (p) => fmt(p.peak);
+      const moves = this.plan.ps.map((p, j) => (p.T ? names[j] + " " + fmt(phys(p.start)) + " → " + fmt(phys(p.target)) + " mm (tepe " + vn(p) + " mm/s" + (j === next && p.delay > 0.001 ? ", " + fmt(p.delay, 2) + " s geç kalkar" : "") + ")" : null)).filter(Boolean);
+      if (this.plan.py.T) moves.push("Y tabla " + fmt(this.plan.py.start) + " → " + fmt(this.plan.py.target) + " mm");
+      changeEl.innerHTML = "<b>Son takım değişimi: " + (prev < 0 ? "başlangıç" : "T" + prev) + " → T" + next + " · QUADRO_PARALLEL_MOVE " + fmt(this.T, 2) + " s</b><br>" + moves.join(" · ");
+    },
+    run(t) { const { ps, py, pz } = this.plan; sx = ps.map((p) => posAt(p, t)); ny = posAt(py, t); hop = posAt(pz, t); } };
+  const drop = { kind: "change", tc, begin() { this.p = profile(hop, 0, LIMITS.vz, LIMITS.az); this.T = this.p.T; tc.T += this.T; }, run(t) { hop = posAt(this.p, t); } };
+  const phases = prev < 0 ? [move] : [lift, move, drop], first = phases[0], begin = first.begin;
+  first.begin = function () { if (prev >= 0) stats.changes++; active = next; setActive(next); begin.call(this); };
+  return phases;
+}
+// an ordinary G1 of the active tool and the bed: one straight move, its own trapezoid
+function travelPhase(to) {
+  return { kind: "travel", begin() {
+      this.a = [sx[active], ny]; this.b = [PRINT_SX0 + to[0], to[1]];
+      this.L = Math.hypot(this.b[0] - this.a[0], this.b[1] - this.a[1]); this.p = profile(0, this.L, Math.min(cfg.travel, LIMITS.v), cfg.accel); this.T = this.p.T;
+    },
+    run(t) { const f = this.L ? posAt(this.p, t) / this.L : 1; sx[active] = this.a[0] + (this.b[0] - this.a[0]) * f; ny = this.a[1] + (this.b[1] - this.a[1]) * f; } };
+}
+function extrudePhase(kind, path, onEnd) {
+  return { kind, path, begin() {
+      this.plan = planPath(path, cfg.print, cfg.accel); this.T = this.plan.T; this.s = 0;
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(3 * (Math.ceil(this.plan.L / 0.5) + path.length + 10)), 3));
+      geo.setDrawRange(0, 0);
+      this.line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: COLORS[active] })); this.n = 0;
+      trails.add(this.line); this.point(...path[0]);
+    },
+    point(px, py) {
+      const pos = this.line.geometry.attributes.position;
+      if (this.n >= pos.count) return;
+      pos.setXYZ(this.n++, -(PRINT_SX0 + px) / 1000, (PEI_TOP + (layer + 1) * LAYER_H) / 1000, (PRINT_Z0 + py) / 1000);
+      pos.needsUpdate = true; this.line.geometry.setDrawRange(0, this.n);
+    },
+    run(t) {
+      const before = this.s; this.s = pathAt(this.plan, t);
+      // sample the path every 0.5 mm so corners stay sharp at high speed
+      for (let d = Math.ceil(before / 0.5) * 0.5; d < this.s; d += 0.5) this.point(...pointAlong(path, d));
+      const [px, py] = pointAlong(path, this.s);
+      sx[active] = PRINT_SX0 + px; ny = py; this.point(px, py);
+    },
+    end() { trails.remove(this.line); this.line.geometry.dispose(); onEnd(); } };
 }
 function nextJob() {
   if (jobAt >= jobs.length) {
     if (layer + 1 >= LAYERS) { phase = { kind: "done" }; setPlaying(false); return; }
-    layer++; done.clear(); jobs = layerJobs(layer, active); jobAt = 0;
+    layer++; done.clear(); jobs = layerJobs(layer, active); jobAt = 0; bandAt = 0;
   }
-  const job = jobs[jobAt++];
-  const path = blockPath(job.q, layer);
-  phase = null;
-  startMove(job.tool, path[0]);
-  phase.job = job; phase.path = path;
+  const job = jobs[jobAt++], path = blockPath(job.q, layer);
+  queue = [];
+  if (job.tool !== active) {
+    if (active < 0) queue.push(...changePhases(job.tool, path[0]));
+    else {
+      const b = bandAt++, tower = towerPath(layer, b), tool = job.tool, approach = APPROACH[active + ">" + tool] || 0;
+      queue.push(...changePhases(tool, tower[0]));
+      if (approach) queue.push(travelPhase(tower[0]));                // the macro stops 10 mm short; the next G1 finishes it
+      queue.push(extrudePhase("purge", tower, () => { addTowerBand(layer, b, tool); stats.purge += PURGE_VOL; }));
+    }
+  }
+  queue.push(travelPhase(path[0]));
+  queue.push(extrudePhase("print", path, () => { done.add(job.q); growBlocks(); }));
+  advance();
 }
-function startPrint(job, path) {
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(3 * (path.length * 30 + 10)), 3));
-  geo.setDrawRange(0, 0);
-  const line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: COLORS[job.tool] }));
-  trails.add(line);
-  phase = { kind: "print", s: 0, L: lengthOf(path), path, job, line, n: 0 };
-  addTrailPoint(...path[0]);
-}
-function addTrailPoint(px, py) {
-  const { line } = phase, pos = line.geometry.attributes.position;
-  if (phase.n >= pos.count) return;
-  pos.setXYZ(phase.n++, -(PRINT_SX0 + px) / 1000, (PEI_TOP + (layer + 1) * LAYER_H) / 1000, (PRINT_Z0 + py) / 1000);
-  pos.needsUpdate = true; line.geometry.setDrawRange(0, phase.n);
-}
-function finishBlock() {
-  trails.remove(phase.line); phase.line.geometry.dispose();
-  done.add(phase.job.q); growBlocks();
-}
+function advance() { phase = queue.shift() || { kind: "idle" }; phase.t = 0; phase.T = 0; phase.begin?.(); }
 function step(dt) {
-  stats.time += dt;
-  if (phase.kind === "idle") return nextJob();
-  if (phase.kind === "done") return;
-  if (phase.kind === "change") {
-    phase.t = Math.min(phase.T, phase.t + dt);
-    const u = ease(phase.t, phase.T, phase.f);
-    sx = phase.from.map((x0, j) => x0 + (phase.to[j] - x0) * u);
-    ny = phase.y0 + (phase.y1 - phase.y0) * u;
-    if (phase.t >= phase.T) startPrint(phase.job, phase.path);
-    return;
+  while (dt > 1e-9) {
+    if (phase.kind === "idle") nextJob();
+    if (phase.kind === "done") return;
+    const use = Math.min(dt, phase.T - phase.t);
+    phase.t += use; dt -= use; stats.time += use;
+    if (phase.tc) phase.tc.t += use;
+    phase.run(phase.t);
+    if (phase.t >= phase.T - 1e-9) { phase.end?.(); advance(); }
   }
-  const before = phase.s;
-  phase.s = Math.min(phase.L, phase.s + cfg.print * dt);
-  // sample the path every 0.5 mm so corners stay sharp at high speed
-  for (let d = Math.ceil(before / 0.5) * 0.5; d < phase.s; d += 0.5) addTrailPoint(...pointAlong(phase.path, d));
-  const [px, py] = pointAlong(phase.path, phase.s);
-  sx[active] = PRINT_SX0 + px; ny = py;
-  addTrailPoint(px, py);
-  if (phase.s >= phase.L) { finishBlock(); nextJob(); }
 }
 // the printed cube: one box per block, grown as its layers are finished
 const part = new THREE.Group();
@@ -701,6 +802,25 @@ for (let tier = 0; tier < 4; tier++) for (let q = 0; q < 4; q++) {
   mesh.position.set(-(PRINT_SX0 + CUBE_X0 + qx * BLOCK + BLOCK / 2) / 1000, 0, (PRINT_Z0 + CUBE_Y0 + qy * BLOCK + BLOCK / 2) / 1000);
   mesh.visible = false;
   part.add(mesh); blocks.push({ tier, q, mesh });
+}
+// the prime tower: one thin slab per toolchange band and layer, in the colour that was purged into it
+const tower = new THREE.InstancedMesh(new THREE.BoxGeometry(TOWER.w / 1000, LAYER_H / 1000, BAND_D / 1000), new THREE.MeshStandardMaterial({ roughness: 0.6 }), LAYERS * 3);
+tower.count = 0; tower.frustumCulled = false;
+bedGroup.add(tower);
+function addTowerBand(L, b, tool) {
+  const m = new THREE.Matrix4().makeTranslation(-(PRINT_SX0 + TOWER.x0 + TOWER.w / 2) / 1000, (PEI_TOP + (L + 0.5) * LAYER_H) / 1000, (PRINT_Z0 + towerBand(b)[0] + BAND_D / 2) / 1000);
+  tower.setMatrixAt(tower.count, m); tower.setColorAt(tower.count, new THREE.Color(COLORS[tool]));
+  tower.count++; tower.instanceMatrix.needsUpdate = true; tower.instanceColor.needsUpdate = true; dirty = true;
+}
+// rebuild the tower below a layer we jump to, replaying the same tool order
+function fillTower(upTo) {
+  tower.count = 0;
+  let a = -1;
+  for (let L = 0; L < upTo; L++) {
+    let b = 0;
+    for (const { tool } of layerJobs(L, a)) { if (a >= 0 && tool !== a) addTowerBand(L, b++, tool); a = tool; }
+  }
+  return a;
 }
 function growBlocks() {
   for (const { tier, q, mesh } of blocks) {
@@ -714,14 +834,19 @@ function growBlocks() {
 }
 function restart(toLayer = 0) {
   for (const l of [...trails.children]) { trails.remove(l); l.geometry.dispose(); }
-  layer = toLayer; done.clear(); jobs = layerJobs(layer, active); jobAt = 0; phase = { kind: "idle" };
-  if (toLayer === 0) stats = { changes: 0, time: 0 };
+  phase.end = null; queue = [];
+  // place the heads as the printer would have them: the active tool over the part, the others parked either side
+  active = fillTower(toLayer); setActive(active);
+  sx = active < 0 ? [LP[0], LP[1], RP[1], RP[2]] : sx.map((_, j) => (j < active ? LP[j] : j > active ? RP[j - 1] : PRINT_SX0 + CUBE_X0));
+  if (active >= 0) ny = CUBE_Y0;
+  layer = toLayer; done.clear(); jobs = layerJobs(layer, active); jobAt = 0; bandAt = 0; hop = 0; phase = { kind: "idle" };
+  if (toLayer === 0) stats = { changes: 0, time: 0, purge: 0 };
   growBlocks(); draw(); run();
 }
 function draw() {
   headGroups.forEach((g, j) => (g.position.x = -(sx[j] - SX0[j]) / 1000));
   bedGroup.position.z = (NOZZLE_Z - (PRINT_Z0 + ny)) / 1000;
-  zGroup.position.y = ((layer + 1) * LAYER_H - NOZZLE_DROP) / 1000;
+  zGroup.position.y = ((layer + 1) * LAYER_H + hop - NOZZLE_DROP) / 1000;
   if (runs.length) { updateRuns(); pressCaps(); updateBedCable(); }
   dirty = true;
 }
@@ -732,16 +857,18 @@ function slotName(x) { for (let i = 0; i < 3; i++) { if (Math.abs(x - LP[i]) < 0
 function report() {
   const z = fmt((layer + 1) * LAYER_H, 1);
   let text = "Katman " + (layer + 1) + " / " + LAYERS + " · ";
-  if (phase.kind === "change") text += (phase.swap ? "Takım değişimi " + (phase.prev < 0 ? "başlangıç" : "T" + phase.prev) + " → T" + phase.next : "T" + active + " sonraki bloğa") + " · " + fmt(phase.t, 2) + " / " + fmt(phase.T, 2) + " s";
+  if (phase.kind === "change") text += "Takım değişimi " + (phase.tc.prev < 0 ? "başlangıç" : "T" + phase.tc.prev) + " → T" + phase.tc.next + " · " + fmt(phase.tc.t, 2) + " s · Z hop " + fmt(hop, 1) + " mm";
+  else if (phase.kind === "travel") text += "T" + active + " gezinme · X " + fmt(sx[active] - PRINT_SX0) + " · Y " + fmt(ny) + " mm";
+  else if (phase.kind === "purge") text += "T" + active + " purge tower'da · X " + fmt(sx[active] - PRINT_SX0) + " · Y " + fmt(ny) + " · Z " + z + " mm";
   else if (phase.kind === "print") text += "T" + active + " baskıda · X " + fmt(sx[active] - PRINT_SX0) + " · Y " + fmt(ny) + " · Z " + z + " mm";
   else if (phase.kind === "done") text = "Baskı bitti · " + LAYERS + " katman";
   else text += "hazır";
   const m = Math.floor(stats.time / 60), sec = Math.floor(stats.time % 60);
-  const st = stats.changes + " takım değişimi · simülasyon süresi " + m + " dk " + String(sec).padStart(2, "0") + " sn";
+  const st = stats.changes + " takım değişimi · purge " + fmt(stats.purge) + " mm³ · simülasyon süresi " + m + " dk " + String(sec).padStart(2, "0") + " sn";
   if (statsEl.textContent !== st) statsEl.textContent = st;
   if (readout.textContent !== text) readout.innerHTML = "<b>" + text + "</b>";
   const html = sx.map((x, j) => {
-    const where = j === active && phase.kind === "print" ? "baskıda" : slotName(x) || (phase.kind === "change" ? "hareket" : "—");
+    const where = j === active && phase.kind === "print" ? "baskıda" : j === active && phase.kind === "purge" ? "purge tower" : slotName(x) || "hareket";
     return '<div class="head' + (j === active ? " is-active" : "") + '"><i style="background:' + COLORS[j] + '"></i><b>Tool ' + j + "</b><span>" + where + "</span><em>X " + fmt(x - PRINT_SX0) + " mm</em></div>";
   }).join("");
   if (headsEl.innerHTML !== html) headsEl.innerHTML = html;
