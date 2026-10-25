@@ -17,6 +17,7 @@ def replace_once(text, old, new):
     return text.replace(old, new)
 
 page = replace_once(page, 'const MODEL_URL = "quadro-glb.txt";', 'const MODEL_URL = "data:model/gltf-binary;base64,' + b64(here / "quadro.glb") + '";')
+page = replace_once(page, 'const CONFIG_URL = "printer-config.json";', 'const CONFIG_URL = "data:application/json;base64,' + b64(here / "printer-config.json") + '";')
 page = replace_once(page, 'fetch("logo.svg")', 'fetch("data:image/svg+xml;base64,' + b64(here / "logo.svg") + '")')
 page = replace_once(page, 'load("screen.png"', 'load("data:image/png;base64,' + b64(here / "screen.png") + '"')
 
@@ -26,6 +27,8 @@ imports = {"three": module((vendor / "build/three.module.js").read_text())}
 for a in addons:
     src = (vendor / "examples/jsm" / a).read_text().replace("'../utils/BufferGeometryUtils.js'", "'three/addons/utils/BufferGeometryUtils.js'")
     imports["three/addons/" + a] = module(src)
+imports["quadro/jinja"] = module((here / "jinja.js").read_text())
+imports["quadro/klipper"] = module((here / "klipper.js").read_text())
 page, n = re.subn(r'<script type="importmap">.*?</script>', lambda m: '<script type="importmap">' + json.dumps({"imports": imports}) + "</script>", page, flags=re.S)
 assert n == 1
 

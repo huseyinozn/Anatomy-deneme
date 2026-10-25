@@ -17,6 +17,6 @@ mkdir -p "$OUT"
   printf '\n</body></html>\n'
 } > "$OUT/index.html"
 grep -q 'MODEL_URL = "quadro.glb"' "$OUT/index.html"
-cp quadro.glb screen.png logo.svg "$OUT/"
+cp quadro.glb screen.png logo.svg klipper.js jinja.js printer-config.json "$OUT/"
 touch "$OUT/.nojekyll"
 echo "built $OUT"
