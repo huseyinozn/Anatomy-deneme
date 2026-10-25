@@ -66,6 +66,8 @@ export default {
     if (!res.ok) return reply({ error: "The assistant is unavailable right now." }, 502);
     const data = await res.json();
     const answer = (data.content || []).filter((c) => c.type === "text").map((c) => c.text).join("");
-    return reply({ answer: data.stop_reason === "max_tokens" ? answer + " …" : answer });
+    // stop and tokens say why an answer ended (end_turn when complete); a cut answer is marked with "…"
+    const cut = data.stop_reason && data.stop_reason !== "end_turn";
+    return reply({ answer: cut ? answer + " …" : answer, stop: data.stop_reason, tokens: data.usage && data.usage.output_tokens, blocks: (data.content || []).map((c) => c.type) });
   },
 };
