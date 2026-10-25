@@ -1,6 +1,6 @@
 // Cloudflare Worker behind the "Ask about Quadro" box on the Quadro 3D page.
 // The page posts { question, history, state }; the worker asks Claude with the API key kept as the
-// ANTHROPIC_API_KEY secret and returns { answer }.
+// ANTHROPIC_API_KEY secret and returns { answer }. Cloudflare redeploys it on every push to master (Workers Builds).
 // Everything that may change (system prompt, model, limits, allowed sites) lives in ask-config.json, published next
 // to the page on GitHub Pages and re-read every few minutes, so updating the assistant never means redeploying this.
 const CONFIG_URL = "https://huseyinozn.github.io/quadro-3d/ask-config.json";
