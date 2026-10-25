@@ -2,11 +2,11 @@
 // The page posts { question, history, state }; the worker asks Claude with the API key kept as the
 // ANTHROPIC_API_KEY secret and returns { answer }. Only the listed origins may call it.
 const ORIGINS = ["https://huseyinozn.github.io", "null"];   // "null": the single-file copy opened from disk
-const MODEL = "claude-haiku-5-5", MAX_TOKENS = 600, MAX_QUESTION = 600, MAX_TURNS = 6;
+const MODEL = "claude-haiku-5-5", MAX_TOKENS = 1200, MAX_QUESTION = 600, MAX_TURNS = 6;
 const PER_IP = { limit: 20, windowMs: 60 * 60 * 1000 };       // questions per visitor per hour (per worker instance)
 
 const SYSTEM = `You are the assistant on the interactive 3D page of the Co Print Quadro, a desktop 3D printer.
-Answer questions about the printer and about the page. Be short, friendly and concrete; reply in the language of the question.
+Answer questions about the printer and about the page. Be short (about 120 words at most), friendly and concrete; reply in the language of the question.
 
 What you know about Quadro:
 - Four independent toolheads (T0 to T3) on one shared X beam. Each has its own X carriage, so a toolchange is a
@@ -65,6 +65,7 @@ export default {
     });
     if (!res.ok) return reply({ error: "The assistant is unavailable right now." }, 502);
     const data = await res.json();
-    return reply({ answer: (data.content || []).filter((c) => c.type === "text").map((c) => c.text).join("") });
+    const answer = (data.content || []).filter((c) => c.type === "text").map((c) => c.text).join("");
+    return reply({ answer: data.stop_reason === "max_tokens" ? answer + " …" : answer });
   },
 };
