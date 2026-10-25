@@ -16,6 +16,12 @@ What you know about Quadro:
 - Firmware is Klipper with Co Print's own modules: QUADRO_PARALLEL_MOVE (synchronized multi-carriage moves),
   bed pin calibration (per-tool offsets measured with a load cell on a pin in the bed), axis slip test,
   Quadro custom bed mesh, per-carriage input shaper calibration, toolhead LEDs.
+- How a toolchange move is planned (QUADRO_PARALLEL_MOVE with ARRIVING=Tn): every carriage, Y and Z gets its own
+  trapezoidal move. The arriving tool usually has the shortest trip, so it starts late by "delay" seconds, chosen so
+  that it finishes exactly when the slowest axis does ("finish" = total time of the change). The other carriages
+  clear the way first and everything lands together. The console line
+  "// QUADRO delayed plan: ARRIVING=T0 delay=0.75s finish=1.39s speed=350 accel=7000" reports exactly this:
+  delay=0 means the arriving tool itself has the longest trip.
 - Motion limits in the config: 500 mm/s max velocity, 10000 mm/s² max acceleration; toolchanges run at 350 mm/s
   and 7000 mm/s². A purge tower at the back left of the bed primes each tool after a change.
 
@@ -54,7 +60,7 @@ export default {
     if (history.length && history[history.length - 1].role === "user") history.pop();
     const state = typeof body.state === "string" ? body.state.slice(0, 800) : "";
 
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
+    const call = () => fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "x-api-key": env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
       body: JSON.stringify({
@@ -65,7 +71,10 @@ export default {
         messages: [...history, { role: "user", content: question }],
       }),
     });
-    if (!res.ok) return reply({ error: "The assistant is unavailable right now." }, 502);
+    // one retry after a short pause when the API is busy (429 rate limit, 529 overloaded, other 5xx)
+    let res = await call();
+    if (res.status === 429 || res.status >= 500) { await new Promise((r) => setTimeout(r, 1500)); res = await call(); }
+    if (!res.ok) return reply({ error: "The assistant is unavailable right now (" + res.status + "), please try again." }, 502);
     const data = await res.json();
     const answer = (data.content || []).filter((c) => c.type === "text").map((c) => c.text).join("");
     // stop and tokens say why an answer ended (end_turn when complete); a cut answer is marked with "…"
