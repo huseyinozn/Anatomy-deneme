@@ -31,55 +31,101 @@ header p { margin: 0; color: var(--muted); font-size: 14px; }
 button { font: inherit; font-size: 14px; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 14px; min-height: 40px; cursor: pointer; }
 button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 button[data-play] { min-width: 104px; font-weight: 600; }
-.heads { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
-.head { display: grid; grid-template-columns: auto 1fr; gap: 0 8px; align-items: center; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); min-width: 0; }
-.head.is-active { border-color: var(--ink); }
-.head i { width: 10px; height: 10px; border-radius: 50%; }
-.head b { font-weight: 600; }
-.head span, .head em { grid-column: 2; font: 12px var(--mono); font-style: normal; color: var(--muted); font-variant-numeric: tabular-nums; }
-.change { margin: 0; font-size: 13px; color: var(--muted); min-height: 2.8em; }
-.change b { color: var(--ink); font-weight: 600; }
-.sliders { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 24px; }
-.sliders label { display: grid; grid-template-columns: 1fr auto; gap: 2px; font-size: 13px; color: var(--muted); }
-.sliders output { font: 13px var(--mono); color: var(--ink); font-variant-numeric: tabular-nums; }
-.sliders input { grid-column: 1 / -1; width: 100%; accent-color: var(--accent); }
-.note { margin: 0; font-size: 13px; color: var(--muted); max-width: 75ch; }
-@media (max-width: 640px) { .heads { grid-template-columns: repeat(2, minmax(0, 1fr)); } .sliders { grid-template-columns: 1fr; } .stage { aspect-ratio: 1 / 1; } }
+.speed { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.speed button { border: 0; border-radius: 0; min-width: 48px; }
+.speed button + button { border-left: 1px solid var(--line); }
+.speed button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+/* Dashboard: printer-interface cards (dark in both themes, like a printer web UI) */
+.dash { --d-bg: #121315; --d-card: #1d1e21; --d-head: #26282c; --d-ink: #e9eaec; --d-muted: #9a9ca2; --d-line: #33353a; --d-accent: #4f8ff7;
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 12px; border-radius: 12px; background: var(--d-bg); color: var(--d-ink); }
+.card { background: var(--d-card); border: 1px solid var(--d-line); border-radius: 8px; overflow: hidden; min-width: 0; }
+.card h2 { margin: 0; padding: 8px 12px; background: var(--d-head); font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; display: flex; justify-content: space-between; gap: 8px; }
+.card h2 small { font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--d-muted); font-family: var(--mono); }
+.card .body { padding: 10px 12px; }
+.card.wide { grid-column: 1 / -1; }
+.file { font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+.bar { height: 6px; border-radius: 3px; background: var(--d-line); margin: 8px 0 10px; overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; background: var(--d-accent); }
+.kv { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.kv div { min-width: 0; }
+.kv span { display: block; font-size: 11px; color: var(--d-muted); text-transform: uppercase; letter-spacing: .04em; }
+.kv b { font: 500 15px var(--mono); font-variant-numeric: tabular-nums; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; font-weight: 500; font-size: 11px; color: var(--d-muted); text-transform: uppercase; letter-spacing: .04em; padding: 0 6px 6px 0; }
+td { padding: 5px 6px 5px 0; border-top: 1px solid var(--d-line); font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+td:first-child { font-family: var(--sans); font-weight: 600; }
+td i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; }
+tr.on td { color: #fff; } tr.on td:first-child::after { content: " ●"; color: var(--d-accent); font-size: 10px; }
+.console { height: 210px; overflow-y: auto; margin: 0; padding: 8px 12px; font: 12px/1.55 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+.console .t { color: var(--d-muted); } .console .r { color: #8fd18f; } .console .c { color: var(--d-muted); }
+.about { margin: 0; font-size: 13px; color: var(--muted); max-width: 75ch; }
+@media (max-width: 720px) { .dash { grid-template-columns: 1fr; } .stage { aspect-ratio: 1 / 1; } }
 </style>
 
 <div class="page">
   <header>
-    <h1>Quadro</h1>
-    <p>Gerçek CAD montajından: 4 bağımsız kafa, tek X kirişi, Qdock istasyonları</p>
+    <h1>Co Print Quadro</h1>
+    <p>Four independent toolheads on one X beam, parking in Qdock stations at both ends</p>
   </header>
 
   <div class="stage" id="stage">
-    <div class="loading" id="loading">Model yükleniyor…</div>
-    <div class="hud"><span>Döndür: tek parmak · Yakınlaş: iki parmak</span><span id="readout"><b>hazır</b></span></div>
+    <div class="loading" id="loading">Loading model…</div>
+    <div class="hud"><span>Drag to rotate · pinch to zoom</span><span id="readout"><b>Ready</b></span></div>
   </div>
 
   <div class="desk">
     <div class="row">
-      <button id="play" data-play aria-pressed="true">Durdur</button>
-      <button id="restart">Baştan başlat</button>
-      <button id="skip">10 katman ileri</button>
-      <span class="label" id="stats" aria-live="off"></span>
+      <button id="play" data-play aria-pressed="true">Pause</button>
+      <button id="restart">Restart</button>
+      <button id="skip">Skip 10 layers</button>
+      <span class="label">Playback</span>
+      <span class="speed" id="speed"><button data-speed="1" aria-pressed="true">1×</button><button data-speed="3" aria-pressed="false">3×</button><button data-speed="10" aria-pressed="false">10×</button></span>
     </div>
-    <div class="heads" id="heads"></div>
-    <p class="change" id="change">Takım değişimi bekleniyor…</p>
     <div class="row">
-      <span class="label">Görünüm</span>
-      <button data-view="front">Önden</button><button data-view="iso">İzometrik</button><button data-view="side">Yandan</button><button data-view="top">Üstten</button><button data-view="dock">Qdock yakın</button><button data-view="part">Parça yakın</button><button data-view="room">Masa</button><button id="room-toggle">Odayı gizle</button>
+      <span class="label">View</span>
+      <button data-view="front">Front</button><button data-view="iso">Isometric</button><button data-view="side">Side</button><button data-view="top">Top</button><button data-view="dock">Qdock</button><button data-view="part">Part</button><button data-view="room">Desk</button><button id="room-toggle">Hide room</button>
     </div>
-    <div class="sliders">
-      <label>Animasyon hızı <output></output><input id="s-scale" type="range" data-cfg="scale" min="0.05" max="10" step="0.05"></label>
-      <label>Baskı hızı (mm/s) <output></output><input id="s-print" type="range" data-cfg="print" min="30" max="500" step="10"></label>
-      <label>Takım değişimi hızı, SPEED (mm/s) <output></output><input id="s-tcv" type="range" data-cfg="tcSpeed" min="50" max="500" step="10"></label>
-      <label>Takım değişimi ivmesi (mm/s²) <output></output><input id="s-tca" type="range" data-cfg="tcAccel" min="1000" max="10000" step="500"></label>
-      <label>Gezinme hızı (mm/s) <output></output><input id="s-tv" type="range" data-cfg="travel" min="50" max="500" step="10"></label>
-      <label>Baskı ve gezinme ivmesi (mm/s²) <output></output><input id="s-acc" type="range" data-cfg="accel" min="1000" max="10000" step="500"></label>
+
+    <div class="dash">
+      <section class="card">
+        <h2>Print job <small id="pct">0%</small></h2>
+        <div class="body">
+          <div class="file">alignment_test_cube.gcode</div>
+          <div class="bar"><i id="bar"></i></div>
+          <div class="kv">
+            <div><span>Layer</span><b id="d-layer">1 / 100</b></div>
+            <div><span>Elapsed</span><b id="d-time">0:00</b></div>
+            <div><span>Toolchanges</span><b id="d-changes">0</b></div>
+          </div>
+        </div>
+      </section>
+      <section class="card">
+        <h2>Toolhead <small id="d-state">Ready</small></h2>
+        <div class="body">
+          <div class="kv">
+            <div><span>X</span><b id="d-x">—</b></div>
+            <div><span>Y</span><b id="d-y">—</b></div>
+            <div><span>Z</span><b id="d-z">—</b></div>
+            <div><span>Active tool</span><b id="d-tool">—</b></div>
+            <div><span>Velocity</span><b id="d-v">0 mm/s</b></div>
+            <div><span>Prime tower</span><b id="d-purge">0 mm³</b></div>
+          </div>
+        </div>
+      </section>
+      <section class="card">
+        <h2>Tools</h2>
+        <div class="body"><table><thead><tr><th>Tool</th><th>Carriage X</th><th>State</th></tr></thead><tbody id="tools"></tbody></table></div>
+      </section>
+      <section class="card">
+        <h2>Last toolchange <small id="tc-time">—</small></h2>
+        <div class="body"><table><thead><tr><th>Axis</th><th>From → to</th><th>Peak</th><th>Start</th></tr></thead><tbody id="tc"></tbody></table></div>
+      </section>
+      <section class="card wide">
+        <h2>Console</h2>
+        <pre class="console" id="console" aria-live="off"></pre>
+      </section>
     </div>
-    <p class="note">Geometri, SolidWorks tam montajının STEP çıktısından geliyor; güncel enjeksiyon ve alüminyum parçalar ayrı dosyalarından yerine kondu, web için sadeleştirildi. Montajdaki fazla dört kafa gizlendi; ekran 45°'ye yatırıldı. Qdock'taki yaylı silikon nozul kapakları, nozul üstlerine geldiğinde 2,5 mm basılır. Hareketler makinenin kendi ayarlarından: printer.cfg (maks. hız 500 mm/s, ivme 10000 mm/s², köşe hızı 5 mm/s, Z 20 mm/s ve 500 mm/s²) ve cp_macro.cfg'deki takım değişimi makroları (ivme 7000, önce Z +0,4 mm, sonra QUADRO_PARALLEL_MOVE ile Z +3 mm, SPEED=350, Qdock konumları ve 10 mm yaklaşma payları). Paralel hareket, klippy/extras/quadro_parallel_carriage.py'deki "method B" planı ile hesaplanır: her kafa, Y ve Z kendi trapez profiliyle aynı anda kalkar; gelen kafa en yavaş eksenle aynı anda varacak kadar geç kalkar. Baskı yolları Klipper'ın köşe hızı ve ileri bakış (lookahead) hesabıyla oynatılır; minimum_cruise_ratio, input shaper ve ekstrüzyon sınırları modellenmedi. Varsayımlar: baskı hızı, takım değişiminden sonra Z'nin baskı yüksekliğine inişi (20 mm/s) ve purge tower (OrcaSlicer varsayılanları: 35 mm genişlik, takım değişimi başına 45 mm³, tablanın sol arka köşesinde). Makaralar, PTFE ve kafa kabloları montajda olmadığı için temsili çizildi. Basılan parça Snapmaker Space'teki "Alignment Test Cube" (CC0), fotoğraflarından yeniden kuruldu: 20 mm küp, 2 × 2 blok, 4 kat, katman 0,2 mm. Masa: IKEA LINNMON 150 × 75 cm masa üstü, ADILS ayaklarla 74 cm. Odadaki diğer eşyalar ölçek için temsilidir.</p>
+    <p class="about">A live simulation of Quadro's toolchanges. Motion timing comes from the printer's own Klipper configuration and its parallel-carriage toolchange planner: the parked heads clear the way while the next tool arrives, all in one synchronized move. The machine is the production CAD model; the print is a four-colour 20 mm alignment cube with a prime tower.</p>
   </div>
 </div>
 
@@ -174,7 +220,7 @@ const cfg = { tcSpeed: TC.speed, tcAccel: TC.accel, travel: 300, accel: LIMITS.a
 let sx = [LP[0], LP[1], RP[1], RP[2]], ny = 2, hop = 0, active = -1, phase = { kind: "idle" };
 let layer = 0, jobs = layerJobs(0, -1), jobAt = 0, done = new Set(), stats = { changes: 0, time: 0, purge: 0 };
 let playing = !matchMedia("(prefers-reduced-motion: reduce)").matches;
-const fmt = (v, n = 0) => v.toFixed(n).replace(".", ",").replace("-", "−");
+const fmt = (v, n = 0) => (Math.abs(v) < 0.5 * 10 ** -n ? 0 : v).toFixed(n);
 
 // ---------- three.js scene ----------
 const stage = document.getElementById("stage");
@@ -402,7 +448,7 @@ async function loadModel() {
     const { done, value } = await reader.read();
     if (done) break;
     parts.push(value); got += value.length;
-    if (total) document.getElementById("loading").textContent = "Model yükleniyor… %" + Math.round((got / total) * 100);
+    if (total) document.getElementById("loading").textContent = "Loading model… " + Math.round((got / total) * 100) + "%";
   }
   const text = new TextDecoder().decode(await new Blob(parts).arrayBuffer());
   const bin = atob(text.trim()), bytes = new Uint8Array(bin.length);
@@ -472,7 +518,7 @@ loadModel().then((gltf) => {
   draw();
   run();
 }).catch((err) => {
-  document.getElementById("loading").textContent = "Model yüklenemedi: " + err.message;
+  document.getElementById("loading").textContent = "Could not load the model: " + err.message;
 });
 
 function setActive(j) {
@@ -614,7 +660,7 @@ function chair(x, floor, z) {
   }
 }
 document.getElementById("room-toggle").addEventListener("click", (e) => {
-  roomGroup.visible = !roomGroup.visible; e.target.textContent = roomGroup.visible ? "Odayı gizle" : "Odayı göster"; dirty = true; run();
+  roomGroup.visible = !roomGroup.visible; e.target.textContent = roomGroup.visible ? "Hide room" : "Show room"; dirty = true; run();
 });
 
 const VIEWS = { front: [180, 8, 0.95], iso: [215, 22, 1.05], side: [270, 12, 1.05], top: [180, 80, 1.0], dock: [160, 14, 0.5], part: [205, 28, 0.28], room: [205, 16, 2.5] };
@@ -706,24 +752,41 @@ function towerPath(layer, b) {
   return pts;
 }
 
-const changeEl = document.getElementById("change");
+// ---------- console: the commands the printer runs, as Mainsail-style lines ----------
+const consoleEl = document.getElementById("console"), tcEl = document.getElementById("tc"), tcTimeEl = document.getElementById("tc-time");
+const clock = (t) => Math.floor(t / 60) + ":" + String(Math.floor(t % 60)).padStart(2, "0");
+const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+function log(text, cls = "") {
+  const line = document.createElement("div");
+  line.innerHTML = '<span class="t">' + clock(stats.time) + "</span> " + (cls ? '<span class="' + cls + '">' + esc(text) + "</span>" : esc(text));
+  consoleEl.append(line);
+  while (consoleEl.childElementCount > 120) consoleEl.firstElementChild.remove();
+  consoleEl.scrollTop = consoleEl.scrollHeight;
+}
+const EXTRUDER = ["extruder", "extruder1", "extruder2", "extruder3"];
+const zNow = () => (layer + 1) * LAYER_H;
 let queue = [], bandAt = 0;
 const phys = (x) => x - PRINT_SX0;                                  // sx -> printer X
 function changePhases(next, [px, py]) {
   const prev = active, approach = APPROACH[prev + ">" + next] || 0;
   const tc = { prev, next, t: 0, T: 0 };
-  const lift = { kind: "change", tc, begin() { this.p = profile(hop, TC.hopPre, LIMITS.vz, Math.min(cfg.tcAccel, LIMITS.az)); this.T = this.p.T; tc.T += this.T; },
+  const lift = { kind: "change", tc, begin() {
+      log("T" + next); log("SET_VELOCITY_LIMIT ACCEL=" + cfg.tcAccel); log("G91"); log("G1 Z" + TC.hopPre + " F1800"); log("G90");
+      this.p = profile(hop, TC.hopPre, LIMITS.vz, Math.min(cfg.tcAccel, LIMITS.az)); this.T = this.p.T; tc.T += this.T; },
     run(t) { hop = posAt(this.p, t); } };
   const move = { kind: "change", tc, begin() {
       const to = sx.map((_, j) => (j < next ? LP[j] : j > next ? RP[j - 1] : PRINT_SX0 + px + approach));
       this.plan = parallelPlan(to, next, py, prev < 0 ? hop : TC.hop); this.T = this.plan.T; tc.T += this.T;
-      const names = ["T0", "T1", "T2", "T3"], vn = (p) => fmt(p.peak);
-      const moves = this.plan.ps.map((p, j) => (p.T ? names[j] + " " + fmt(phys(p.start)) + " → " + fmt(phys(p.target)) + " mm (tepe " + vn(p) + " mm/s" + (j === next && p.delay > 0.001 ? ", " + fmt(p.delay, 2) + " s geç kalkar" : "") + ")" : null)).filter(Boolean);
-      if (this.plan.py.T) moves.push("Y tabla " + fmt(this.plan.py.start) + " → " + fmt(this.plan.py.target) + " mm");
-      changeEl.innerHTML = "<b>Son takım değişimi: " + (prev < 0 ? "başlangıç" : "T" + prev) + " → T" + next + " · QUADRO_PARALLEL_MOVE " + fmt(this.T, 2) + " s</b><br>" + moves.join(" · ");
+      const { ps, py: pY, pz } = this.plan, moving = ps.map((p, j) => (p.T || j === next ? "T" + j + "=" + phys(p.target).toFixed(2) : null)).filter(Boolean);
+      log("QUADRO_PARALLEL_MOVE " + moving.join(" ") + " Y=" + py.toFixed(2) + (prev < 0 ? "" : " Z=" + (zNow() + TC.hop).toFixed(2)) + " SPEED=" + cfg.tcSpeed + " ARRIVING=T" + next);
+      log("// QUADRO delayed plan: ARRIVING=T" + next + " delay=" + ps[next].delay.toFixed(6) + "s finish=" + this.T.toFixed(6) + "s speed=" + Math.min(cfg.tcSpeed, LIMITS.v).toFixed(3) + " accel=" + cfg.tcAccel.toFixed(3), "r");
+      const row = (name, p, j) => "<tr><td>" + (j >= 0 ? '<i style="background:' + COLORS[j] + '"></i>' : "") + name + "</td><td>" + (p.T ? fmt(name === "Y bed" || name === "Z" ? p.start : phys(p.start), name === "Z" ? 1 : 0) + " → " + fmt(name === "Y bed" || name === "Z" ? p.target : phys(p.target), name === "Z" ? 1 : 0) : "holds") + "</td><td>" + (p.T ? fmt(p.peak) + " mm/s" : "—") + "</td><td>" + (p.T ? (p.delay > 0.001 ? "+" + fmt(p.delay, 2) + " s" : "0 s") : "—") + "</td></tr>";
+      tcEl.innerHTML = ps.map((p, j) => row("T" + j, p, j)).join("") + row("Y bed", pY, -1) + (pz.T ? row("Z", { ...pz, start: zNow() + pz.start, target: zNow() + pz.target }, -1) : "");
+      tcTimeEl.textContent = (prev < 0 ? "start" : "T" + prev) + " → T" + next + " · " + fmt(this.T, 2) + " s";
     },
-    run(t) { const { ps, py, pz } = this.plan; sx = ps.map((p) => posAt(p, t)); ny = posAt(py, t); hop = posAt(pz, t); } };
-  const drop = { kind: "change", tc, begin() { this.p = profile(hop, 0, LIMITS.vz, LIMITS.az); this.T = this.p.T; tc.T += this.T; }, run(t) { hop = posAt(this.p, t); } };
+    run(t) { const { ps, py, pz } = this.plan; sx = ps.map((p) => posAt(p, t)); ny = posAt(py, t); hop = posAt(pz, t); },
+    end() { log("SET_DUAL_CARRIAGE CARRIAGE=carriage_t" + next + " MODE=PRIMARY"); log("ACTIVATE_EXTRUDER EXTRUDER=" + EXTRUDER[next]); } };
+  const drop = { kind: "change", tc, begin() { log("G1 Z" + zNow().toFixed(2)); this.p = profile(hop, 0, LIMITS.vz, LIMITS.az); this.T = this.p.T; tc.T += this.T; }, run(t) { hop = posAt(this.p, t); } };
   const phases = prev < 0 ? [move] : [lift, move, drop], first = phases[0], begin = first.begin;
   first.begin = function () { if (prev >= 0) stats.changes++; active = next; setActive(next); begin.call(this); };
   return phases;
@@ -764,6 +827,7 @@ function nextJob() {
   if (jobAt >= jobs.length) {
     if (layer + 1 >= LAYERS) { phase = { kind: "done" }; setPlaying(false); return; }
     layer++; done.clear(); jobs = layerJobs(layer, active); jobAt = 0; bandAt = 0;
+    log(";LAYER_CHANGE  Z" + zNow().toFixed(2), "c");
   }
   const job = jobs[jobAt++], path = blockPath(job.q, layer);
   queue = [];
@@ -773,14 +837,16 @@ function nextJob() {
       const b = bandAt++, tower = towerPath(layer, b), tool = job.tool, approach = APPROACH[active + ">" + tool] || 0;
       queue.push(...changePhases(tool, tower[0]));
       if (approach) queue.push(travelPhase(tower[0]));                // the macro stops 10 mm short; the next G1 finishes it
+      queue.push({ kind: "note", begin() { log("; prime tower, T" + tool + " purges " + PURGE_VOL + " mm³", "c"); } });
       queue.push(extrudePhase("purge", tower, () => { addTowerBand(layer, b, tool); stats.purge += PURGE_VOL; }));
     }
   }
   queue.push(travelPhase(path[0]));
+  queue.push({ kind: "note", begin() { log("; T" + job.tool + " prints its block", "c"); } });
   queue.push(extrudePhase("print", path, () => { done.add(job.q); growBlocks(); }));
   advance();
 }
-function advance() { phase = queue.shift() || { kind: "idle" }; phase.t = 0; phase.T = 0; phase.begin?.(); }
+function advance() { phase = queue.shift() || { kind: "idle" }; phase.t = 0; phase.T = 0; phase.run ||= () => {}; phase.begin?.(); }
 function step(dt) {
   while (dt > 1e-9) {
     if (phase.kind === "idle") nextJob();
@@ -840,7 +906,9 @@ function restart(toLayer = 0) {
   sx = active < 0 ? [LP[0], LP[1], RP[1], RP[2]] : sx.map((_, j) => (j < active ? LP[j] : j > active ? RP[j - 1] : PRINT_SX0 + CUBE_X0));
   if (active >= 0) ny = CUBE_Y0;
   layer = toLayer; done.clear(); jobs = layerJobs(layer, active); jobAt = 0; bandAt = 0; hop = 0; phase = { kind: "idle" };
-  if (toLayer === 0) stats = { changes: 0, time: 0, purge: 0 };
+  if (toLayer === 0) { stats = { changes: 0, time: 0, purge: 0 }; consoleEl.textContent = ""; log("START_PRINT", "c"); }
+  else log("; skipped to layer " + (toLayer + 1), "c");
+  lastPos = null; vel = 0;
   growBlocks(); draw(); run();
 }
 function draw() {
@@ -851,27 +919,38 @@ function draw() {
   dirty = true;
 }
 
-// ---------- readout ----------
-const readout = document.getElementById("readout"), headsEl = document.getElementById("heads"), statsEl = document.getElementById("stats");
-function slotName(x) { for (let i = 0; i < 3; i++) { if (Math.abs(x - LP[i]) < 0.5) return "Qdock L" + (i + 1); if (Math.abs(x - RP[i]) < 0.5) return "Qdock R" + (i + 1); } return null; }
+// ---------- readout and dashboard ----------
+const $ = (id) => document.getElementById(id);
+const readout = $("readout"), toolsEl = $("tools");
+function slotName(x) { for (let i = 0; i < 3; i++) { if (Math.abs(x - LP[i]) < 0.5) return "Docked, Qdock L" + (i + 1); if (Math.abs(x - RP[i]) < 0.5) return "Docked, Qdock R" + (i + 1); } return null; }
+const STATE = { change: "Toolchange", travel: "Travel", purge: "Prime tower", print: "Printing", done: "Complete", idle: "Ready", note: "Printing" };
+let vel = 0, lastPos = null;
+function set(id, text) { const el = $(id); if (el.textContent !== text) el.textContent = text; }
 function report() {
-  const z = fmt((layer + 1) * LAYER_H, 1);
-  let text = "Katman " + (layer + 1) + " / " + LAYERS + " · ";
-  if (phase.kind === "change") text += "Takım değişimi " + (phase.tc.prev < 0 ? "başlangıç" : "T" + phase.tc.prev) + " → T" + phase.tc.next + " · " + fmt(phase.tc.t, 2) + " s · Z hop " + fmt(hop, 1) + " mm";
-  else if (phase.kind === "travel") text += "T" + active + " gezinme · X " + fmt(sx[active] - PRINT_SX0) + " · Y " + fmt(ny) + " mm";
-  else if (phase.kind === "purge") text += "T" + active + " purge tower'da · X " + fmt(sx[active] - PRINT_SX0) + " · Y " + fmt(ny) + " · Z " + z + " mm";
-  else if (phase.kind === "print") text += "T" + active + " baskıda · X " + fmt(sx[active] - PRINT_SX0) + " · Y " + fmt(ny) + " · Z " + z + " mm";
-  else if (phase.kind === "done") text = "Baskı bitti · " + LAYERS + " katman";
-  else text += "hazır";
-  const m = Math.floor(stats.time / 60), sec = Math.floor(stats.time % 60);
-  const st = stats.changes + " takım değişimi · purge " + fmt(stats.purge) + " mm³ · simülasyon süresi " + m + " dk " + String(sec).padStart(2, "0") + " sn";
-  if (statsEl.textContent !== st) statsEl.textContent = st;
+  const z = zNow() + hop, k = phase.kind;
+  let text = "Layer " + (layer + 1) + "/" + LAYERS + " · ";
+  if (k === "change") text += "Toolchange " + (phase.tc.prev < 0 ? "start" : "T" + phase.tc.prev) + " → T" + phase.tc.next;
+  else if (k === "done") text = "Print complete";
+  else if (active >= 0) text += "T" + active + " " + (STATE[k] || "").toLowerCase();
   if (readout.textContent !== text) readout.innerHTML = "<b>" + text + "</b>";
+  const progress = k === "done" ? 1 : (layer + jobAt / 4) / LAYERS;
+  set("pct", Math.floor(progress * 100) + "%"); $("bar").style.width = (progress * 100).toFixed(1) + "%";
+  set("d-layer", (layer + 1) + " / " + LAYERS); set("d-time", clock(stats.time)); set("d-changes", String(stats.changes));
+  set("d-state", STATE[k] || "Ready"); set("d-tool", active < 0 ? "—" : "T" + active);
+  set("d-x", active < 0 ? "—" : fmt(phys(sx[active]), 2)); set("d-y", fmt(ny, 2)); set("d-z", fmt(z, 2));
+  set("d-v", fmt(vel) + " mm/s"); set("d-purge", fmt(stats.purge) + " mm³");
   const html = sx.map((x, j) => {
-    const where = j === active && phase.kind === "print" ? "baskıda" : j === active && phase.kind === "purge" ? "purge tower" : slotName(x) || "hareket";
-    return '<div class="head' + (j === active ? " is-active" : "") + '"><i style="background:' + COLORS[j] + '"></i><b>Tool ' + j + "</b><span>" + where + "</span><em>X " + fmt(x - PRINT_SX0) + " mm</em></div>";
+    const where = j === active && (k === "print" || k === "note") ? "Printing" : j === active && k === "purge" ? "Prime tower" : slotName(x) || "Moving";
+    return '<tr class="' + (j === active ? "on" : "") + '"><td><i style="background:' + COLORS[j] + '"></i>T' + j + "</td><td>" + fmt(phys(x), 2) + "</td><td>" + where + "</td></tr>";
   }).join("");
-  if (headsEl.innerHTML !== html) headsEl.innerHTML = html;
+  if (toolsEl.innerHTML !== html) toolsEl.innerHTML = html;
+}
+// toolhead velocity, as the web UI shows it: the active nozzle's speed over the bed
+function sampleVelocity(dt) {
+  if (active < 0 || dt <= 0) return;
+  const p = [phys(sx[active]), ny, hop];
+  if (lastPos) { const v = Math.hypot(p[0] - lastPos[0], p[1] - lastPos[1], p[2] - lastPos[2]) / dt; vel += (v - vel) * Math.min(1, dt * 12); }
+  lastPos = p;
 }
 
 // ---------- loop ----------
@@ -879,7 +958,7 @@ let last = 0, frame = 0;
 function tick(now) {
   const dt = last ? Math.min((now - last) / 1000, 0.1) : 1 / 60;
   last = now;
-  if (playing && ready) { step(dt * cfg.scale); draw(); }
+  if (playing && ready) { step(dt * cfg.scale); sampleVelocity(dt * cfg.scale); draw(); }
   if (tween) {
     tween.t = Math.min(1, tween.t + dt / 0.7);
     const k = tween.t < 0.5 ? 2 * tween.t * tween.t : 1 - Math.pow(-2 * tween.t + 2, 2) / 2;
@@ -897,17 +976,16 @@ controls.addEventListener("change", run);
 
 // ---------- controls ----------
 const playBtn = document.getElementById("play");
-function setPlaying(on) { playing = on; playBtn.textContent = on ? "Durdur" : "Başlat"; playBtn.setAttribute("aria-pressed", String(on)); run(); }
+function setPlaying(on) { playing = on; playBtn.textContent = on ? "Pause" : "Play"; playBtn.setAttribute("aria-pressed", String(on)); run(); }
 playBtn.addEventListener("click", () => setPlaying(!playing));
 document.getElementById("restart").addEventListener("click", () => { restart(0); setPlaying(true); });
 document.getElementById("skip").addEventListener("click", () => { if (phase.kind !== "done") { restart(Math.min(LAYERS - 1, layer + 10)); setPlaying(true); } });
 document.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => setView(b.dataset.view)));
-document.querySelectorAll("input[data-cfg]").forEach((input) => {
-  const key = input.dataset.cfg, out = input.parentElement.querySelector("output");
-  const show = () => (out.textContent = key === "scale" ? fmt(cfg[key], 2) + "×" : fmt(cfg[key]));
-  input.value = cfg[key]; show();
-  input.addEventListener("input", () => { cfg[key] = Number(input.value); show(); });
-});
+document.querySelectorAll("[data-speed]").forEach((b) => b.addEventListener("click", () => {
+  cfg.scale = Number(b.dataset.speed);
+  document.querySelectorAll("[data-speed]").forEach((o) => o.setAttribute("aria-pressed", String(o === b)));
+}));
+log("START_PRINT", "c");
 setPlaying(playing);
 report();
 </script>
