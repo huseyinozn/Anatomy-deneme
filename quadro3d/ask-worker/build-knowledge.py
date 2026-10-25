@@ -6,13 +6,12 @@ import pathlib, re, sys
 
 src = pathlib.Path(sys.argv[1])
 here = pathlib.Path(__file__).parent
-# pa_autotune, coprint_leds and load_cell_probe (mostly stock Klipper) are covered by the guide only, keeping the whole
+# pa_autotune, coprint_leds, quadro_input_shaper and load_cell_probe (mostly stock Klipper) are covered by the guide only, keeping the whole
 # reference under the 100K-token prompt size above which the model is billed at a higher rate
 MODULES = ["quadro_parallel_carriage.py", "bed_pin_calibration.py", "axis_slip_test.py", "quadro_bed_mesh.py",
-           "quadro_input_shaper.py"]
+           ]
 CONFIGS = ["printer.cfg", "tool_map.cfg", "cp_macro.cfg", "cp_macro_2.cfg", "calibration_wizard.cfg",
-           "purge_filament_macros.cfg", "input_shaper.cfg", "leds.cfg", "ext-bed.cfg", "chroma_head_1.cfg",
-           "bed_pin_tool_positions.json", "bed_pin_offsets.json"]
+           "purge_filament_macros.cfg", "input_shaper.cfg", "bed_pin_tool_positions.json", "bed_pin_offsets.json"]
 WIRING = re.compile(r"^\s*#?\s*(serial|canbus_uuid|uuid|[a-z_]*pins?|cs_pin|spi_\w+|i2c_\w+|sensor_pin|"
                     r"heater_pin|step_pin|dir_pin|enable_pin|uart_pin|diag_pin|endstop_pin)\s*[:=]", re.I)
 WIRED_PATH = re.compile(r"/dev/serial|usb-0:")
