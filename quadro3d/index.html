@@ -452,7 +452,7 @@ async function loadModel() {
     if (total) document.getElementById("loading").textContent = "Loading model… " + Math.round((got / total) * 100) + "%";
   }
   let buffer = await new Blob(parts).arrayBuffer();
-  if (!MODEL_URL.endsWith(".glb")) {
+  if (!/\.glb$|^data:/.test(MODEL_URL)) {
     const bin = atob(new TextDecoder().decode(buffer).trim()), bytes = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
     buffer = bytes.buffer;
