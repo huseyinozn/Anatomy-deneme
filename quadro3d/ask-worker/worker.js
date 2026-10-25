@@ -3,6 +3,9 @@
 // ANTHROPIC_API_KEY secret and returns { answer }. Cloudflare redeploys it on every push to master (Workers Builds).
 // Everything that may change (system prompt, model, limits, allowed sites) lives in ask-config.json, published next
 // to the page on GitHub Pages and re-read every few minutes, so updating the assistant never means redeploying this.
+// knowledge.md (guide + Co Print's Klipper modules + printer config, built by build-knowledge.py) is bundled as text
+import KNOWLEDGE from "./knowledge.md";
+
 const CONFIG_URL = "https://huseyinozn.github.io/quadro-3d/ask-config.json";
 const DEFAULTS = {
   model: "claude-haiku-5-5", max_tokens: 1500, thinking: { type: "disabled" }, max_question: 600, max_turns: 6, per_ip_per_hour: 20,
@@ -52,7 +55,11 @@ export default {
 
     const request = {
       model: cfg.model, max_tokens: cfg.max_tokens,
-      system: cfg.system + (state ? "\n\nCurrent state of the simulation on the visitor's screen:\n" + state : ""),
+      // the long, unchanging part is cached by the API (cache reads cost a tenth); the visitor's screen state comes after it
+      system: [
+        { type: "text", text: cfg.system + "\n\n" + KNOWLEDGE, cache_control: { type: "ephemeral" } },
+        ...(state ? [{ type: "text", text: "Current state of the simulation on the visitor's screen:\n" + state }] : []),
+      ],
       messages: [...history, { role: "user", content: question }],
     };
     if (cfg.thinking) request.thinking = cfg.thinking;
@@ -70,6 +77,7 @@ export default {
     // stop says why an answer ended (end_turn when complete); a cut answer is marked with "…"
     const answer = (data.content || []).filter((c) => c.type === "text").map((c) => c.text).join("");
     const cut = data.stop_reason && data.stop_reason !== "end_turn";
-    return reply({ answer: cut ? answer + " …" : answer, stop: data.stop_reason, tokens: data.usage && data.usage.output_tokens, version: 2 });
+    return reply({ answer: cut ? answer + " …" : answer, stop: data.stop_reason, tokens: data.usage && data.usage.output_tokens, input: data.usage && data.usage.input_tokens,
+      cached: data.usage && data.usage.cache_read_input_tokens, version: 3 });
   },
 };

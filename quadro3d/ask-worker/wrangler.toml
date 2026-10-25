@@ -6,3 +6,9 @@ compatibility_date = "2025-09-01"
 
 [observability]
 enabled = true
+
+# knowledge.md is imported by worker.js as a string
+[[rules]]
+type = "Text"
+globs = ["**/*.md"]
+fallthrough = true
