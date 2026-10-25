@@ -1,0 +1,8 @@
+# Cloudflare builds and deploys this Worker from GitHub (Workers Builds): root directory quadro3d/ask-worker,
+# deploy command "npx wrangler deploy". The ANTHROPIC_API_KEY secret is set in the dashboard and kept across deploys.
+name = "quadro-ask"
+main = "worker.js"
+compatibility_date = "2025-09-01"
+
+[observability]
+enabled = true
