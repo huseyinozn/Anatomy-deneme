@@ -12,8 +12,14 @@ answer from it.
 - Qdock: three parking slots at each end of the beam. Park positions in printer X: left -169, -112.75, -56.5 and right
   356.5, 412.75, 469. Carriages must keep at least 56.25 mm between neighbours (min_clearance).
 - Each Qdock slot has a spring-loaded silicone nozzle closer (cap) that a parked nozzle presses down.
-- A load cell under a pin in the bed ("bed pin") measures contact force; it is used for tool offset calibration,
-  the axis slip test and pressure advance work. Each toolhead also has its own ADXL345 accelerometer (t0..t3).
+- Two kinds of load cell, both ADS1220:
+  1. The Z probe: [load_cell_probe] in the first toolhead's head board (chroma_head_1.cfg, MCU cp_Head_1). The nozzle
+     itself touches the bed and the load cell in the head triggers at trigger_force 25 g (sample_rate 600,
+     counts_per_gram 48.31, force_safety_limit 2000 g). Homing Z, PROBE and the bed mesh use it.
+  2. The bed pin: [load_cell bed_pin], a load cell under a small pin in the bed. Nozzles touch the pin from above and
+     from the sides; it is used for tool offset calibration (bed_pin_calibration), the axis slip test and pressure
+     advance work.
+- Each toolhead also has its own ADXL345 accelerometer (t0..t3) for input shaper calibration.
 - Per-toolhead "chroma head" MCUs and LED strips (coprint_leds) show tool state.
 
 ## Toolchange (macros + quadro_parallel_carriage)
@@ -73,8 +79,9 @@ Detects lost steps (belt/motor slip) on X or Y at a given acceleration.
   probing repeatability itself).
 
 ## Bed mesh (quadro_bed_mesh)
-QUADRO_CUSTOM_BED_MESH [PROFILE=default] [REPEATS=2]: runs complete probing passes over Klipper's configured mesh
-(e.g. 9x9), averages every point across the passes, and builds one Klipper mesh from the averages (less noise than a
+QUADRO_CUSTOM_BED_MESH [PROFILE=default] [REPEATS=2]: probes with the nozzle load cell probe (not the bed pin), with a
+mechanical settle and a manual load cell tare before every point. It runs complete probing passes over Klipper's
+configured mesh (e.g. 9x9), averages every point across the passes, and builds one Klipper mesh from the averages (less noise than a
 single pass). QUADRO_BED_MESH_CALIBRATE / CALIBRATE_BED_MESH macros wrap it with homing and heating.
 
 ## Input shaper (quadro_input_shaper)
@@ -96,8 +103,8 @@ TH_LOADING_START / TH_LOADING_END, PRINT_STATE_START / PRINT_STATE_TOOLCHANGE EX
 START_WHITE_WAVE / STOP_WHITE_WAVE.
 
 ## Load cell probe (load_cell_probe, modified Klipper module)
-Klipper's load cell probe with Co Print changes; the bed pin is a load cell (LOAD_CELL=bed_pin) used with
-LOAD_CELL_TARE and force readings in grams.
+Klipper's load cell probe with Co Print changes, used for the nozzle-contact Z probe in the head. The bed pin is a
+separate load cell (LOAD_CELL=bed_pin) read with LOAD_CELL_TARE and force readings in grams.
 
 ## Printing flow (macros)
 START_PRINT homes (QUADRO_HOME / _PRINT_HOME), heats the bed and the tools used, loads the bed mesh, purges new
