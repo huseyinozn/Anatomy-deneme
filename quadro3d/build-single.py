@@ -29,6 +29,11 @@ for a in addons:
     imports["three/addons/" + a] = module(src)
 imports["quadro/jinja"] = module((here / "jinja.js").read_text())
 imports["quadro/klipper"] = module((here / "klipper.js").read_text())
+imports["quadro/screen"] = module((here / "screen.js").read_text())
+# the touch screen's images, looked up by name through window.QS_ASSETS
+mime = {".png": "image/png", ".gif": "image/gif", ".svg": "image/svg+xml"}
+assets = {f.name: "data:" + mime[f.suffix] + ";base64," + b64(f) for f in sorted((here / "qs").iterdir())}
+page = "<script>window.QS_ASSETS = " + json.dumps(assets) + ";</script>\n" + page
 page, n = re.subn(r'<script type="importmap">.*?</script>', lambda m: '<script type="importmap">' + json.dumps({"imports": imports}) + "</script>", page, flags=re.S)
 assert n == 1
 

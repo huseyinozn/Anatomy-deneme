@@ -17,7 +17,8 @@ mkdir -p "$OUT"
   printf '\n</body></html>\n'
 } > "$OUT/index.html"
 grep -q 'MODEL_URL = "quadro.glb"' "$OUT/index.html"
-cp quadro.glb screen.png logo.svg klipper.js jinja.js printer-config.json "$OUT/"
+cp quadro.glb screen.png logo.svg klipper.js jinja.js screen.js printer-config.json "$OUT/"
+rm -rf "$OUT/qs" && cp -r qs "$OUT/qs"   # the touch screen's images
 cp ask-worker/ask-config.json "$OUT/"   # settings the Ask worker re-reads (prompt, model, limits)
 touch "$OUT/.nojekyll"
 echo "built $OUT"

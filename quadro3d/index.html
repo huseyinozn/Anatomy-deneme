@@ -101,8 +101,6 @@ tr.on td { color: #fff; } tr.on td:first-child::after { content: " ●"; color: 
 
   <div class="desk">
     <div class="row">
-      <button id="play" data-play aria-pressed="true">Pause</button>
-      <button id="restart">Restart</button>
       <button id="skip">Skip 10 layers</button>
       <button id="clear-bed">Clear bed</button>
       <span class="label">Playback</span>
@@ -181,22 +179,27 @@ tr.on td { color: #fff; } tr.on td:first-child::after { content: " ●"; color: 
         <form class="cmdline" id="cmd-form" autocomplete="off"><input id="cmd" type="text" spellcheck="false" autocapitalize="characters" placeholder="Send code…" aria-label="G-code command"><button type="submit">Send</button></form>
       </section>
       <section class="card wide">
+        <h2>Printer screen <small>QuadroScreen · tap it to print, move and calibrate · calibrations take real time, 10× playback speeds them up</small></h2>
+        <div class="body"><div id="qscreen"></div></div>
+      </section>
+      <section class="card wide">
         <h2>Ask about Quadro <small>answered by Claude · tap a command to put it in the console</small></h2>
         <div class="ask-log" id="ask-log" aria-live="polite"></div>
         <form class="cmdline" id="ask-form" autocomplete="off"><input id="ask" type="text" maxlength="600" placeholder="How does a toolchange work?" aria-label="Question about Quadro"><button type="submit">Ask</button></form>
       </section>
     </div>
-    <p class="about">A live simulation of Quadro's toolchanges. Motion timing comes from the printer's own Klipper configuration and its parallel-carriage toolchange planner: the parked heads clear the way while the next tool arrives, all in one synchronized move. The machine is the production CAD model; the print is a four-colour 20 mm alignment cube with a prime tower. The console runs the printer's own Klipper configuration, its macros and its toolchange, homing and calibration modules, right in the browser: anything typed there behaves as it would on the machine. Heaters and the bed surface are simulated (the bed follows the printer's saved mesh); load cell forces and accelerometer readings are not.</p>
+    <p class="about">A live simulation of Quadro's toolchanges. Motion timing comes from the printer's own Klipper configuration and its parallel-carriage toolchange planner: the parked heads clear the way while the next tool arrives, all in one synchronized move. The machine is the production CAD model; the print is a four-colour 20 mm alignment cube with a prime tower. The console runs the printer's own Klipper configuration, its macros and its toolchange, homing and calibration modules, right in the browser: anything typed there behaves as it would on the machine. The printer screen is Quadro's own touch screen software, rebuilt for the browser: its print, move, filament and calibration pages send the same commands to that console. Heaters and the bed surface are simulated (the bed follows the printer's saved mesh); load cell forces and accelerometer readings are not.</p>
   </div>
 </div>
 
-<script type="importmap">{"imports": {"three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/", "quadro/klipper": "./klipper.js", "quadro/jinja": "./jinja.js"}}</script>
+<script type="importmap">{"imports": {"three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/", "quadro/klipper": "./klipper.js", "quadro/jinja": "./jinja.js", "quadro/screen": "./screen.js"}}</script>
 <script type="module">
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { createPrinter } from "quadro/klipper";
+import { createScreen } from "quadro/screen";
 const CONFIG_URL = "printer-config.json";
 
 // ---------- machine facts measured from the CAD export (mm, world: x across, y up, z front(-)/back(+)) ----------
@@ -281,9 +284,9 @@ const TOWER = { x0: 12, y0: 255, w: 35 };                        // back left co
 const BAND_D = Math.ceil(PURGE_VOL / (LINE_W * LAYER_H * TOWER.w)) * LINE_W;   // one toolchange's purge, mm deep
 // travel: PHYS_TOOL_n ends with G1 F18000, so moves after a toolchange run at 300 mm/s until the slicer sets a feed
 const cfg = { tcSpeed: TC.speed, tcAccel: TC.accel, travel: 300, accel: LIMITS.a, print: 350, scale: 1 };
-let sx = [LP[0], LP[1], RP[1], RP[2]], ny = 2, hop = 0, active = -1, phase = { kind: "idle" };
+let sx = [LP[0], LP[1], RP[1], RP[2]], ny = 2, hop = 0, active = -1, phase = { kind: "ready", t: 0, T: 0, run() {} };
 let layer = 0, jobs = layerJobs(0, -1), jobAt = 0, done = new Set(), stats = { changes: 0, time: 0, purge: 0 };
-let playing = !matchMedia("(prefers-reduced-motion: reduce)").matches;
+let playing = true;
 const fmt = (v, n = 0) => (Math.abs(v) < 0.5 * 10 ** -n ? 0 : v).toFixed(n);
 
 // ---------- three.js scene ----------
@@ -899,16 +902,20 @@ function extrudePhase(kind, path, onEnd) {
 }
 function nextJob() {
   if (jobAt >= jobs.length) {
-    if (layer + 1 >= LAYERS) { phase = { kind: "done", t: 0, T: 0, run() {} }; job = "done"; log("// Done printing file", "r"); return; }
+    if (layer + 1 >= LAYERS) {
+      phase = { kind: "done", t: 0, T: 0, run() {} }; job = "done"; log("// Done printing file", "r");
+      if (K) { K.sync({ ...poseNow(), active, homed: ["x", "y", "z"] }); K.run("TURN_OFF_HEATERS"); }
+      return;
+    }
     layer++; done.clear(); jobs = layerJobs(layer, active); jobAt = 0; bandAt = 0;
     log(";LAYER_CHANGE  Z" + zNow().toFixed(2), "c");
   }
-  const job = jobs[jobAt++], path = blockPath(job.q, layer);
+  const next = jobs[jobAt++], path = blockPath(next.q, layer);
   queue = [];
-  if (job.tool !== active) {
-    if (active < 0) queue.push(...changePhases(job.tool, path[0]));
+  if (next.tool !== active) {
+    if (active < 0) queue.push(...changePhases(next.tool, path[0]));
     else {
-      const b = bandAt++, tower = towerPath(layer, b), tool = job.tool, approach = APPROACH[active + ">" + tool] || 0;
+      const b = bandAt++, tower = towerPath(layer, b), tool = next.tool, approach = APPROACH[active + ">" + tool] || 0;
       queue.push(...changePhases(tool, tower[0]));
       if (approach) queue.push(travelPhase(tower[0]));                // the macro stops 10 mm short; the next G1 finishes it
       queue.push({ kind: "note", begin() { log("; prime tower, T" + tool + " purges " + PURGE_VOL + " mm³", "c"); } });
@@ -916,8 +923,8 @@ function nextJob() {
     }
   }
   queue.push(travelPhase(path[0]));
-  queue.push({ kind: "note", begin() { log("; T" + job.tool + " prints its block", "c"); } });
-  queue.push(extrudePhase("print", path, () => { done.add(job.q); growBlocks(); }));
+  queue.push({ kind: "note", begin() { log("; T" + next.tool + " prints its block", "c"); } });
+  queue.push(extrudePhase("print", path, () => { done.add(next.q); growBlocks(); }));
   advance();
 }
 function startPhase(p) { phase = p; phase.t = 0; phase.T = 0; phase.run ||= () => {}; phase.begin?.(); }
@@ -989,6 +996,7 @@ function clearBed() {
   bedCleared = true; trails.visible = tower.visible = false;
   for (const l of [...manualTrails.children]) { manualTrails.remove(l); l.geometry.dispose(); }
   meshDots.clear(); growBlocks();
+  if (job === "done" || job === "stopped") { job = "standby"; if (phase.kind === "done") phase = { kind: "ready", t: 0, T: 0, run() {} }; }
   log("; bed cleared", "c");
 }
 function restart(toLayer = 0, quiet = false) {
@@ -1057,7 +1065,7 @@ function sampleVelocity(dt) {
 // ---------- console: the printer's own Klipper config, run by klipper.js ----------
 // Everything typed goes to a model of the printer's Klipper host (printer-config.json is the printer's config:
 // its macros, homing_override and modules). Moves come back as timed items and are animated here.
-let job = "printing", cmdQueue = [], saved = null, simClock = 0, K = null, pendingLines = [], handover = null;
+let job = "standby", cmdQueue = [], saved = null, simClock = 0, K = null, pendingLines = [], handover = null;
 const zAbs = () => zNow() + hop;
 const poseNow = () => ({ x: sx.map(phys), y: ny, z: zAbs() });
 function applyPose(p) { sx = p.x.map((x) => PRINT_SX0 + x); ny = p.y; hop = p.z - zNow(); }
@@ -1114,7 +1122,7 @@ const host = {
   print: {
     state: () => (job === "printing" || job === "paused" ? "printing" : job === "done" ? "complete" : job === "stopped" ? "cancelled" : "standby"),
     filename: () => (job === "stopped" && !saved ? "" : "alignment_test_cube.gcode"), duration: () => stats.time, progress: () => Math.min(1, (layer + jobAt / 4) / LAYERS), layers: () => [layer + 1, LAYERS],
-    start: () => { restart(0, true); setPlaying(true); }, cancel: () => stopPrint("stopped"),
+    start: () => { restart(0, true); setPlaying(true); K.sync({ ...poseNow(), active, homed: ["x", "y", "z"] }); }, cancel: () => stopPrint("stopped"),
   },
 };
 function stopPrint(kind) {
@@ -1170,7 +1178,6 @@ function resumeHandback() {
 }
 function startKlipper(config) {
   K = createPrinter(config, host);
-  K.setHeaters({ extruder: 220, extruder1: 220, extruder2: 220, extruder3: 220, heater_bed: 60 });
 }
 
 // probed mesh points and the calibration pin
@@ -1264,6 +1271,24 @@ askForm.addEventListener("submit", async (e) => {
   delete askForm.dataset.busy; askLog.scrollTop = askLog.scrollHeight;
 });
 
+// ---------- the printer's touch screen (QuadroScreen), driving the same console ----------
+const QS_ASSETS = window.QS_ASSETS || {};
+createScreen($("qscreen"), {
+  run: submit, colors: COLORS, colorNames: ["Blue", "Red", "Green", "Yellow"],
+  asset: (n) => QS_ASSETS[n] || "qs/" + n,
+  clearBed,
+  isShutdown: () => !!K && K.isShutdown(),
+  macroVar: (m, v) => (K ? K.macroVar(m, v) : null),
+  state: () => {
+    const k = K && K.state();
+    return {
+      job, active, layer: layer + 1, layers: LAYERS, changes: stats.changes, elapsed: stats.time,
+      progress: job === "done" ? 1 : Math.min(1, (layer + jobAt / 4) / LAYERS),
+      heaters: K ? K.heaters() : null, homed: k ? [...k.homed] : [], fan: k && active >= 0 ? k.fans["fan_generic fan_t" + active] : 0,
+    };
+  },
+});
+
 fetch(CONFIG_URL).then((r) => r.json()).then((config) => { startKlipper(config); addPin(config.bedPin.T0); }).catch((e) => log("!! Could not load the printer config: " + e.message, "e"));
 
 // ---------- loop ----------
@@ -1288,18 +1313,15 @@ controls.addEventListener("start", run);
 controls.addEventListener("change", run);
 
 // ---------- controls ----------
-const playBtn = document.getElementById("play");
-function setPlaying(on) { playing = on; playBtn.textContent = on ? "Pause" : "Play"; playBtn.setAttribute("aria-pressed", String(on)); run(); }
-playBtn.addEventListener("click", () => setPlaying(!playing));
+function setPlaying(on) { playing = on; run(); }
 document.getElementById("clear-bed").addEventListener("click", clearBed);
-document.getElementById("restart").addEventListener("click", () => { restart(0); setPlaying(true); });
-document.getElementById("skip").addEventListener("click", () => { if (phase.kind !== "done") { restart(Math.min(LAYERS - 1, layer + 10)); setPlaying(true); } });
+document.getElementById("skip").addEventListener("click", () => { if (job === "printing" && phase.kind !== "done") { restart(Math.min(LAYERS - 1, layer + 10)); setPlaying(true); } });
 document.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => setView(b.dataset.view)));
 document.querySelectorAll("[data-speed]").forEach((b) => b.addEventListener("click", () => {
   cfg.scale = Number(b.dataset.speed);
   document.querySelectorAll("[data-speed]").forEach((o) => o.setAttribute("aria-pressed", String(o === b)));
 }));
-log("SDCARD_PRINT_FILE FILENAME=alignment_test_cube.gcode", "c");
+log("// Printer ready. Start a print from the printer screen below, or send commands here.", "r");
 setPlaying(playing);
 report();
 </script>
