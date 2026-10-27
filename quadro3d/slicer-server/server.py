@@ -19,7 +19,7 @@ SYSTEM = pathlib.Path(os.environ.get("ORCA_PROFILES", "/opt/orcaslicer/resources
 DATA = pathlib.Path(os.environ.get("DATA", "/data"))
 ORIGINS = os.environ.get("ALLOWED_ORIGINS", "https://huseyinozn.github.io,null").split(",")
 MAX_BYTES = int(os.environ.get("MAX_UPLOAD_MB", "60")) << 20
-SLICE_TIMEOUT = int(os.environ.get("SLICE_TIMEOUT", "300"))
+SLICE_TIMEOUT = int(os.environ.get("SLICE_TIMEOUT", "780"))
 COLOURS = ["#2F7FE6", "#E5484D", "#2FA868", "#F2C230"]
 
 # name shown, vendor folder, machine / process / filament presets, how filaments map to nozzles, seconds the slicer
