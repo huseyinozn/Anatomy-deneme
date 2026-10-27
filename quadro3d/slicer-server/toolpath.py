@@ -4,7 +4,8 @@ extruded runs in the order they print, each with its tool and whether it is part
 extruding moves that join end to start; it is thinned with Ramer-Douglas-Peucker to TOL mm, and coordinates are kept
 in tenths of a millimetre, each point stored as the step from the one before.
 usage: toolpath.py plate_1.gcode out.json
-out: {"v": 1, "layers": [[z, [[tool, kind (0 part, 1 tower), x0, y0, dx1, dy1, ...], ...]], ...]}"""
+out: {"v": 1, "layers": [[z, [[tool, kind, x0, y0, dx1, dy1, ...], ...]], ...]}
+kind: 0 part, 1 prime tower, 2 outer wall (the page draws these as shaded beads, the rest as lines)"""
 import json, sys
 
 TOL = 0.08
@@ -30,7 +31,7 @@ def thin(pts):
 
 def main(src, dst):
     layers, runs, run = [], None, None
-    x = y = z = 0.0; tool = 0; tower = False; relative = True; e_abs = 0.0
+    x = y = z = 0.0; tool = 0; feature = 0; relative = True; e_abs = 0.0
 
     def close():
         nonlocal run
@@ -45,7 +46,8 @@ def main(src, dst):
                 elif line.startswith(";Z:") and layers and layers[-1][0] is None:
                     layers[-1][0] = float(line[3:])
                 elif line.startswith(";TYPE:"):
-                    close(); tower = "tower" in line.lower()
+                    close(); t = line[6:].strip().lower()
+                    feature = 1 if "tower" in t else 2 if t in ("outer wall", "overhang wall") else 0
                 continue
             code = line.split(";", 1)[0].split()
             if not code: continue
@@ -71,7 +73,7 @@ def main(src, dst):
                     else: de, e_abs = v - e_abs, v
             moved = nx != x or ny != y
             if de > 0 and moved and runs is not None:
-                kind = 1 if tower else 0
+                kind = feature
                 if run and run[0] == tool and run[1] == kind and run[2][-1] == (x, y): run[2].append((nx, ny))
                 else: close(); run = [tool, kind, [(x, y), (nx, ny)]]
             elif moved: close()
