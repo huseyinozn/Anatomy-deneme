@@ -1309,7 +1309,7 @@ const screen = createScreen($("qscreen"), {
 });
 
 // ---------- "Slice your model": the slicing service runs OrcaSlicer for the three printers ----------
-const SLICER_URL = "";                              // set once the service is online
+const SLICER_URL = "https://quadro-slicer-312122953843.europe-west1.run.app";
 const sliceForm = $("slice-form"), sliceFile = $("slice-file"), sliceStatus = $("slice-status"), sliceOut = $("slice-out");
 const hm = (s) => { const h = Math.floor(s / 3600), m = Math.round(s / 60) % 60; return h ? h + " h " + m + " min" : m + " min"; };
 function showSlice(r) {
