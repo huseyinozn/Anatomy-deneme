@@ -1,0 +1,21 @@
+﻿{
+	"ironing_spacing": "0.15",
+	"ironing_speed": "30",
+	"type": "process",
+	"name": "0.10mm Standard @CP Quadro 0.2",
+	"inherits": "0.06mm Fine @CP Quadro 0.2",
+	"from": "system",
+	"setting_id": "CoPrintQuadro02Std010",
+	"instantiation": "true",
+	"skirt_loops": "0",
+	"enable_support": "1",
+	"outer_wall_acceleration": "4000",
+	"support_critical_regions_only": "0",
+	"wipe_tower_max_purge_speed": "150",
+	"layer_height": "0.1",
+	"support_bottom_z_distance": "0.1",
+	"support_top_z_distance": "0.1",
+	"compatible_printers": [
+		"Co Print Quadro 0.2 nozzle"
+	]
+}
