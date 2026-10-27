@@ -28,8 +28,10 @@ COLOURS = ["#2F7FE6", "#E5484D", "#2FA868", "#F2C230"]
 PRINTERS = {
     "a1": {"name": "Bambu Lab A1 combo", "vendor": "BBL", "machine": "Bambu Lab A1 0.4 nozzle", "process": "0.20mm Standard @BBL A1",
            "filament": "Bambu PLA Basic @BBL A1", "map": "single", "tc_extra": 0, "tower_y": 165},
-    "u1": {"name": "Snapmaker U1", "vendor": "Snapmaker", "machine": "Snapmaker U1 (0.4 nozzle)", "process": "0.20 Standard @Snapmaker U1 (0.4 nozzle)",
-           "filament": "Snapmaker PLA @U1", "map": "tool", "tc_extra": 0, "tower_y": None},
+    "u1": {"name": "Snapmaker U1", "vendor": "Snapmaker Orca", "machine": "Snapmaker U1 (0.4 nozzle)", "process": "0.20mm Standard @Snapmaker U1 (0.4 nozzle)",
+           "filament": "Snapmaker PLA Basic @U1", "map": "tool", "tc_extra": 0, "tower_y": None,
+           # its start G-code reads a setting only Snapmaker's build has; 1 picks the default chamber cooling branch
+           "gcode_vars": {"chamber_cooling_mode": "1"}},
     "quadro": {"name": "Co Print Quadro", "vendor": "Co Print", "machine": "Co Print Quadro 0.4 nozzle", "process": "0.2mm Standard @CP Quadro",
                "filament": "Co Print PLA (Quadro)", "map": "tool", "tc_extra": 1.5, "tower_y": None},
 }
@@ -62,6 +64,9 @@ def prepare():
     if not profiles.exists():
         shutil.copytree(SYSTEM, profiles)
         shutil.copytree(HERE / "profiles" / "Co Print", profiles / "Co Print", dirs_exist_ok=True)
+        # the U1 presets of Snapmaker's own OrcaSlicer build (github.com/Snapmaker/OrcaSlicer), which purge more on the
+        # tower than the older U1 presets bundled with OrcaSlicer
+        shutil.copytree(HERE / "profiles" / "Snapmaker Orca", profiles / "Snapmaker Orca", dirs_exist_ok=True)
         shutil.copy(HERE / "profiles" / "Co Print.json", profiles / "Co Print.json")
     (DATA / "home" / ".config" / "OrcaSlicer").mkdir(parents=True, exist_ok=True)
     flat, tpl = DATA / "flat", DATA / "tpl"; flat.mkdir(exist_ok=True); tpl.mkdir(exist_ok=True)
@@ -69,7 +74,13 @@ def prepare():
     for tag, p in PRINTERS.items():
         for kind in ("machine", "process", "filament"):
             out = flat / f"{tag}_{kind}.json"
-            if not out.exists(): run_py("flatten.py", profiles, p["vendor"], kind, p[kind], out)
+            if not out.exists():
+                run_py("flatten.py", profiles, p["vendor"], kind, p[kind], out)
+                if kind == "machine" and p.get("gcode_vars"):
+                    m = json.loads(out.read_text())
+                    for var, value in p["gcode_vars"].items():
+                        m["machine_start_gcode"] = re.sub(r"\b%s\b" % var, value, m["machine_start_gcode"])
+                    out.write_text(json.dumps(m, indent=1))
         base = json.loads((flat / f"{tag}_filament.json").read_text())
         for i, c in enumerate(COLOURS, 1):
             g = dict(base, filament_colour=[c], name=f"{base['name']} #{i}"); g["filament_settings_id"] = [g["name"]]
@@ -111,6 +122,8 @@ def slice_one(tag, model, n, work):
         except (OSError, ValueError): pass
         return {"printer": p["name"], "error": err}
     r = json.loads(run_py("stats.py", gcode, p["tc_extra"]))
+    if p["map"] != "single":     # no purge chute on a toolchanger: what is left over is ramming and priming on the tower
+        r["tower"], r["flush"] = round(r["tower"] + r["flush"], 2), 0.0
     r.update(printer=p["name"], slice_seconds=round(time.time() - t0, 1))
     return r
 
