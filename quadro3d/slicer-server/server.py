@@ -6,10 +6,11 @@ The Quadro G-code is kept so the page can list it on the printer's touch screen.
 
 POST /slice   body: the model file, header X-Filename (".3mf" or ".stl")   -> JSON results
 GET  /gcode/<job id>                                                       -> the Quadro G-code
+Responses are gzip-compressed when the client accepts it (Cloud Run refuses bodies over 32 MB; G-code shrinks ~3x).
 GET  /health
 
 Standard library only; runs inside the linuxserver/orcaslicer image (see Dockerfile)."""
-import json, os, pathlib, re, shutil, struct, subprocess, sys, tempfile, threading, time, uuid, zipfile
+import gzip, json, os, pathlib, re, shutil, struct, subprocess, sys, tempfile, threading, time, uuid, zipfile
 from concurrent.futures import ThreadPoolExecutor
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -125,6 +126,9 @@ def slice_one(tag, model, n, work):
     if p["map"] != "single":     # no purge chute on a toolchanger: what is left over is ramming and priming on the tower
         r["tower"], r["flush"] = round(r["tower"] + r["flush"], 2), 0.0
     r.update(printer=p["name"], slice_seconds=round(time.time() - t0, 1))
+    if tag == "quadro":       # the toolpath the page's printer plays when this file is printed on its screen
+        run_py("toolpath.py", gcode, d / "toolpath.json")
+        r["toolpath"] = json.loads((d / "toolpath.json").read_text())
     return r
 
 
@@ -149,8 +153,8 @@ def slice_upload(data, filename):
     results = dict(zip(PRINTERS, pool.map(lambda t: slice_one(t, src, n, work), PRINTERS)))
     job = uuid.uuid4().hex[:12]
     q = work / "quadro" / "plate_1.gcode"
-    if q.exists(): JOBS[job] = (time.time(), q)
-    for k, (t, path) in list(JOBS.items()):          # keep G-code for an hour
+    if q.exists(): JOBS[job] = (time.time(), q, re.sub(r"[^\w.\- ]", "_", re.sub(r"\.(3mf|stl)$", "", filename, flags=re.I)) + ".gcode")
+    for k, (t, path, _) in list(JOBS.items()):          # keep G-code for an hour
         if time.time() - t > 3600:
             JOBS.pop(k, None); shutil.rmtree(path.parent.parent, ignore_errors=True)
     return {"job": job if q.exists() else None, "file": filename, "colours": colours, "printers": results}
@@ -162,9 +166,13 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Origin", o if o in ORIGINS or "*" in ORIGINS else ORIGINS[0])
         self.send_header("Access-Control-Allow-Headers", "Content-Type, X-Filename"); self.send_header("Vary", "Origin")
 
-    def reply(self, code, body, ctype="application/json"):
-        data = body if isinstance(body, bytes) else json.dumps(body).encode()
-        self.send_response(code); self.cors(); self.send_header("Content-Type", ctype); self.send_header("Content-Length", str(len(data))); self.end_headers()
+    def reply(self, code, body, ctype="application/json", filename=None):
+        data = body if isinstance(body, bytes) else json.dumps(body, separators=(",", ":")).encode()
+        self.send_response(code); self.cors(); self.send_header("Content-Type", ctype)
+        if filename: self.send_header("Content-Disposition", 'attachment; filename="%s"' % filename)
+        if len(data) > 1024 and "gzip" in self.headers.get("Accept-Encoding", ""):
+            data = gzip.compress(data, 5); self.send_header("Content-Encoding", "gzip")
+        self.send_header("Content-Length", str(len(data))); self.end_headers()
         self.wfile.write(data)
 
     def do_OPTIONS(self):
@@ -174,7 +182,8 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/health": return self.reply(200, {"ok": True})
         m = re.fullmatch(r"/gcode/([0-9a-f]{12})", self.path)
         if m and m.group(1) in JOBS:
-            return self.reply(200, JOBS[m.group(1)][1].read_bytes(), "text/plain; charset=utf-8")
+            t, path, name = JOBS[m.group(1)]
+            return self.reply(200, path.read_bytes(), "text/plain; charset=utf-8", name)
         self.reply(404, {"error": "not found"})
 
     def do_POST(self):
