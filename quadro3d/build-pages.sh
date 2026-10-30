@@ -19,6 +19,7 @@ mkdir -p "$OUT"
 grep -q 'MODEL_URL = "quadro.glb"' "$OUT/index.html"
 cp quadro.glb screen.png logo.svg klipper.js jinja.js screen.js printer-config.json "$OUT/"
 rm -rf "$OUT/qs" && cp -r qs "$OUT/qs"   # the touch screen's images
+rm -rf "$OUT/up" && cp -r up "$OUT/up"   # Upload your model: spools picture, example models (results and pictures)
 cp ask-worker/ask-config.json "$OUT/"   # settings the Ask worker re-reads (prompt, model, limits)
 touch "$OUT/.nojekyll"
 echo "built $OUT"

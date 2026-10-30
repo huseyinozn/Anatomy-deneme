@@ -12,7 +12,7 @@ Responses are gzip-compressed when the client accepts it (Cloud Run refuses bodi
 GET  /health
 
 Standard library only; runs inside the linuxserver/orcaslicer image (see Dockerfile)."""
-import gzip, json, os, pathlib, re, shutil, struct, subprocess, sys, tempfile, threading, time, uuid, zipfile, zlib
+import base64, gzip, json, os, pathlib, re, shutil, struct, subprocess, sys, tempfile, threading, time, uuid, zipfile, zlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -111,6 +111,18 @@ def colours_of(path):
     return c or COLOURS[:1]
 
 
+def picture_of(path):
+    """The plate picture a slicer saved into the 3MF, as a data URL (none for STLs and bare 3MFs)."""
+    try:
+        with zipfile.ZipFile(path) as z:
+            names = set(z.namelist())
+            for n in ("Metadata/plate_1.png", "Metadata/plate_1_small.png", "Auxiliaries/.thumbnails/thumbnail_middle.png", "Metadata/thumbnail.png"):
+                if n in names and z.getinfo(n).file_size < 600_000:
+                    return "data:image/png;base64," + base64.b64encode(z.read(n)).decode()
+    except (zipfile.BadZipFile, OSError): pass
+    return None
+
+
 def slice_one(tag, model, n, work):
     p = PRINTERS[tag]; d = work / tag; d.mkdir()
     maps = " ".join(["1"] * n) if p["map"] == "single" else " ".join(str(i) for i in range(1, n + 1))
@@ -153,7 +165,7 @@ def slice_upload(data, filename, emit=lambda event: None):
     except zipfile.BadZipFile: return {"error": "This is not a 3MF or STL file."}
     n = len(colours)
     if n > 4: return {"error": f"The model uses {n} colours; these printers hold at most 4."}
-    emit({"stage": "slicing", "printers": list(PRINTERS), "colours": colours})
+    emit({"stage": "slicing", "printers": list(PRINTERS), "colours": colours, "thumb": picture_of(src)})
     futures, results = {pool.submit(slice_one, t, src, n, work): t for t in PRINTERS}, {}
     for f in as_completed(futures):
         t = futures[f]; results[t] = f.result()
