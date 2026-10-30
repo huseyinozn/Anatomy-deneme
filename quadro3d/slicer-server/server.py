@@ -5,13 +5,15 @@ print time, the filament in the part and the waste of each (prime tower, and the
 The Quadro G-code is kept so the page can list it on the printer's touch screen.
 
 POST /slice   body: the model file, header X-Filename (".3mf" or ".stl")   -> JSON results
+              with "Accept: application/x-ndjson": progress as it happens, one JSON object per line
+              ({"stage": ...}, {"done": printer, ...} as each printer finishes), the results last as {"result": ...}
 GET  /gcode/<job id>                                                       -> the Quadro G-code
 Responses are gzip-compressed when the client accepts it (Cloud Run refuses bodies over 32 MB; G-code shrinks ~3x).
 GET  /health
 
 Standard library only; runs inside the linuxserver/orcaslicer image (see Dockerfile)."""
-import gzip, json, os, pathlib, re, shutil, struct, subprocess, sys, tempfile, threading, time, uuid, zipfile
-from concurrent.futures import ThreadPoolExecutor
+import gzip, json, os, pathlib, re, shutil, struct, subprocess, sys, tempfile, threading, time, uuid, zipfile, zlib
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 HERE = pathlib.Path(__file__).parent
@@ -137,11 +139,12 @@ busy = threading.Semaphore(int(os.environ.get("PARALLEL_JOBS", "2")))
 pool = ThreadPoolExecutor(6)
 
 
-def slice_upload(data, filename):
+def slice_upload(data, filename, emit=lambda event: None):
     work = pathlib.Path(tempfile.mkdtemp(dir=DATA))
     ext = ".stl" if filename.lower().endswith(".stl") else ".3mf"
     src = work / ("upload" + ext); src.write_bytes(data)
     if ext == ".stl":      # a plain mesh: let OrcaSlicer build the project, printed in one colour
+        emit({"stage": "converting"})
         code = orca(["--load-settings", f"{DATA}/flat/quadro_machine.json;{DATA}/flat/quadro_process.json", "--load-filaments", filaments("quadro", 1),
                      "--outputdir", str(work), "--export-3mf", "model.3mf", str(src)], work, work / "convert.txt")
         if code != 0: return {"error": "The STL could not be read."}
@@ -150,7 +153,12 @@ def slice_upload(data, filename):
     except zipfile.BadZipFile: return {"error": "This is not a 3MF or STL file."}
     n = len(colours)
     if n > 4: return {"error": f"The model uses {n} colours; these printers hold at most 4."}
-    results = dict(zip(PRINTERS, pool.map(lambda t: slice_one(t, src, n, work), PRINTERS)))
+    emit({"stage": "slicing", "printers": list(PRINTERS), "colours": colours})
+    futures, results = {pool.submit(slice_one, t, src, n, work): t for t in PRINTERS}, {}
+    for f in as_completed(futures):
+        t = futures[f]; results[t] = f.result()
+        emit({"done": t, "seconds": results[t].get("slice_seconds"), "error": results[t].get("error")})
+    results = {t: results[t] for t in PRINTERS}
     job = uuid.uuid4().hex[:12]
     q = work / "quadro" / "plate_1.gcode"
     if q.exists(): JOBS[job] = (time.time(), q, re.sub(r"[^\w.\- ]", "_", re.sub(r"\.(3mf|stl)$", "", filename, flags=re.I)) + ".gcode")
@@ -161,6 +169,8 @@ def slice_upload(data, filename):
 
 
 class Handler(BaseHTTPRequestHandler):
+    protocol_version = "HTTP/1.1"           # chunked responses for the progress stream
+
     def cors(self):
         o = self.headers.get("Origin", "")
         self.send_header("Access-Control-Allow-Origin", o if o in ORIGINS or "*" in ORIGINS else ORIGINS[0])
@@ -170,13 +180,36 @@ class Handler(BaseHTTPRequestHandler):
         data = body if isinstance(body, bytes) else json.dumps(body, separators=(",", ":")).encode()
         self.send_response(code); self.cors(); self.send_header("Content-Type", ctype)
         if filename: self.send_header("Content-Disposition", 'attachment; filename="%s"' % filename)
+        if code >= 400: self.send_header("Connection", "close"); self.close_connection = True   # the upload may be unread
         if len(data) > 1024 and "gzip" in self.headers.get("Accept-Encoding", ""):
             data = gzip.compress(data, 5); self.send_header("Content-Encoding", "gzip")
         self.send_header("Content-Length", str(len(data))); self.end_headers()
         self.wfile.write(data)
 
     def do_OPTIONS(self):
-        self.send_response(204); self.cors(); self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS"); self.end_headers()
+        self.send_response(204); self.cors(); self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Content-Length", "0"); self.end_headers()
+
+    def stream(self):
+        """Open a progress stream: NDJSON in HTTP chunks, gzip-compressed when the client takes it, with a sync flush
+        after every line so each event reaches the page as it happens. Returns emit(event); emit(None) ends it."""
+        self.send_response(200); self.cors(); self.send_header("Content-Type", "application/x-ndjson")
+        self.send_header("Cache-Control", "no-cache"); self.send_header("Transfer-Encoding", "chunked"); self.send_header("Connection", "close")
+        z = zlib.compressobj(5, zlib.DEFLATED, 31) if "gzip" in self.headers.get("Accept-Encoding", "") else None
+        if z: self.send_header("Content-Encoding", "gzip")
+        self.end_headers(); self.close_connection = True
+        lock = threading.Lock()
+
+        def emit(event):
+            raw = b"" if event is None else json.dumps(event, separators=(",", ":")).encode() + b"\n"
+            data = z.compress(raw) + z.flush(zlib.Z_FINISH if event is None else zlib.Z_SYNC_FLUSH) if z else raw
+            with lock:
+                try:
+                    if data: self.wfile.write(b"%x\r\n%s\r\n" % (len(data), data))
+                    if event is None: self.wfile.write(b"0\r\n\r\n")
+                    self.wfile.flush()
+                except OSError: pass        # the page went away; the slice still finishes and is dropped
+        return emit
 
     def do_GET(self):
         if self.path == "/health": return self.reply(200, {"ok": True})
@@ -191,9 +224,21 @@ class Handler(BaseHTTPRequestHandler):
         if self.headers.get("Origin", "null") not in ORIGINS and "*" not in ORIGINS: return self.reply(403, {"error": "forbidden"})
         size = int(self.headers.get("Content-Length", 0))
         if not 0 < size <= MAX_BYTES: return self.reply(413, {"error": f"Upload a file up to {MAX_BYTES >> 20} MB."})
-        data = self.rfile.read(size)
+        data, name = self.rfile.read(size), self.headers.get("X-Filename", "model.3mf")
+        if "application/x-ndjson" in self.headers.get("Accept", ""):
+            emit = self.stream()
+            emit({"stage": "received", "bytes": size})
+            if not busy.acquire(blocking=False):
+                emit({"stage": "queued"})
+                if not busy.acquire(timeout=120):
+                    emit({"error": "The slicer is busy, try again in a minute."}); return emit(None)
+            try: emit({"result": slice_upload(data, name, emit)})
+            except subprocess.TimeoutExpired: emit({"error": "Slicing took too long for this model."})
+            except Exception as e: emit({"error": "Slicing failed: " + str(e)[:200]})
+            finally: busy.release(); emit(None)
+            return
         if not busy.acquire(timeout=120): return self.reply(503, {"error": "The slicer is busy, try again in a minute."})
-        try: self.reply(200, slice_upload(data, self.headers.get("X-Filename", "model.3mf")))
+        try: self.reply(200, slice_upload(data, name))
         except subprocess.TimeoutExpired: self.reply(504, {"error": "Slicing took too long for this model."})
         except Exception as e: self.reply(500, {"error": "Slicing failed: " + str(e)[:200]})
         finally: busy.release()
