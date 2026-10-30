@@ -9,7 +9,7 @@ import KNOWLEDGE from "./knowledge.md";
 const CONFIG_URL = "https://huseyinozn.github.io/quadro-3d/ask-config.json";
 const DEFAULTS = {
   model: "claude-haiku-5-5", max_tokens: 1500, thinking: { type: "disabled" }, max_question: 600, max_turns: 6, per_ip_per_hour: 20,
-  origins: ["https://huseyinozn.github.io", "null"],
+  origins: ["https://calculator.coprint3d.com", "https://huseyinozn.github.io", "null"],
   system: "You are the assistant on the interactive 3D page of the Co Print Quadro 3D printer. Answer briefly in the language of the question; never invent facts.",
 };
 
