@@ -43,8 +43,8 @@ Son güncelleme: 30 Ekim 2026. Her şey canlıda ve iki depo da temiz (commit ed
 | `screen.js` | QuadroScreen'in web kopyası (800×480 dokunmatik ekran): ana sayfa, dosyalar, baskı, hareket, filament, kalibrasyon, sıcaklık, fan |
 | `qs/` | Ekranın görselleri (QuadroScreen 0.2.22'den) |
 | `printer-config.json` | Yazıcının `printer_data/config` dosyaları |
-| `quadro.glb` | Üretim CAD modeli (KHR_mesh_quantization) |
-| `quadro-glb.txt` | Aynı modelin base64 hali. Artifact .glb sunamadığı için var |
+| `quadro.glb` | Üretim CAD modeli (KHR_mesh_quantization). Bu depoda `.gitignore`'da; kopyası quadro-3d deposunda `quadro.glb` olarak duruyor, oradan alınır |
+| `quadro-glb.txt` | Aynı modelin base64 hali. Artifact .glb sunamadığı için var. O da `.gitignore`'da; `base64 -w0 quadro.glb > quadro-glb.txt` ile yeniden üretilir |
 | `build-pages.sh <hedef>` | Pages için çıktı üretir (MODEL_URL'i quadro.glb'ye çevirir, dosyaları kopyalar) |
 | `build-single.py <three vendor> <çıktı>` | Tek dosyalık sürüm (`dist/`, git'e girmez) |
 | `slicer-server/` | Dilimleme servisi (Bölüm 5) |
