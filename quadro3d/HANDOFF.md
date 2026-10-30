@@ -72,6 +72,40 @@ Son güncelleme: 30 Ekim 2026. Her şey canlıda ve iki depo da temiz (commit ed
    - Hareketler sabit 350 mm/s ile oynatılıyor; gerçek süre tahmini tablodaki değer.
 6. **Ask about Quadro:** Cloudflare worker üzerinden Claude'a soru sorma kutusu.
 
+### 30 Ekim arayüz düzenlemesi (canlıda)
+
+**Sayfa sırası:**
+1. Başlık "Quadro Printing Time & Waste Simulator" ve kullanım açıklaması.
+2. Sürükle-bırak alanı ve 3 örnek model.
+3. 3D yazıcı. Oda başlangıçta gizli; "Show room" veya Desk görünümü açıyor.
+4. Sonuçlar (yalnızca model dilimlenince görünüyor).
+5. Cihaz çerçevesi içinde yazıcı ekranı.
+6. Mainsail paneli.
+
+**Yükleme ve dilimleme:**
+- Gerçek yükleme yüzdesi gösteriliyor.
+- Servis istenirse ilerlemeyi akış olarak gönderiyor (`Accept: application/x-ndjson`), her yazıcı bitince bir olay geliyor.
+- Dilimleme başlarken 3MF'nin içindeki plaka resmi (`thumb`) gönderiliyor. Resim yoksa sayfa önizlemeyi Quadro toolpath'inden çiziyor (`renderThumb`).
+
+**Örnekler (`up/` klasörü):**
+- Örnekler önceden dilimlendi: `cubes`, `coaster`, `vase` için `.json` (sonuç) ve `.png` (önizleme).
+- Modeller burada üretildi (STL üretici + çok parçalı 3MF + Orca export), lisans sorunu yok.
+- `up/spools.webp`: kullanıcının görselinden kesilen 4 makara.
+
+**Sonuç ekranı:**
+- "How many of this print do 4 kg of filament make?" başlığı.
+- Her baskı ayrı blok olarak çizilen 4 kg çubukları.
+- Süre ve atık çubukları.
+- Aylık kutular: filament $, boşa çıkan saat, günde kaç kat fazla baskı.
+  - Karşılaştırılan yazıcı seçilebiliyor.
+  - Varsayılan: günde 2 baskı, $25/kg, 30 gün.
+  - Seçilen sayı günde 24 saati aşarsa uyarı çıkıyor.
+
+**Dilimleme sonrası:**
+- Baskı 3D yazıcıda otomatik başlıyor (timelapse, 10×) ve dosya ekranın Files listesine ekleniyor, model önizlemesiyle.
+
+**Not:** Vazo örneğinde Quadro, U1'den yavaş çıkıyor (az renk değişimi). Kullanıcıya söylendi, değiştirmek isterse başka örnek konacak.
+
 ## 5. Dilimleme servisi (slicer-server)
 
 **Barındırma (Google Cloud Run):**
