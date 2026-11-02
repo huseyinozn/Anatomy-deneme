@@ -123,12 +123,20 @@ def picture_of(path):
     return None
 
 
-def slice_one(tag, model, n, work):
+def slice_one(tag, model, n, work, no_tower=False):
+    """no_tower: slice without a prime tower (Quadro's zero-waste mode: each head is parked, so there is
+    nothing to purge between colours)."""
     p = PRINTERS[tag]; d = work / tag; d.mkdir()
     maps = " ".join(["1"] * n) if p["map"] == "single" else " ".join(str(i) for i in range(1, n + 1))
-    run_py("patch3mf.py", model, d / "in.3mf", maps, DATA / "tpl" / f"{tag}_{n}.json")
+    tpl, process = DATA / "tpl" / f"{tag}_{n}.json", DATA / "flat" / f"{tag}_process.json"
+    if no_tower:
+        project = json.loads(tpl.read_text()); project["enable_prime_tower"] = "0"
+        tpl = d / "tpl.json"; tpl.write_text(json.dumps(project))
+        proc = json.loads(process.read_text()); proc["enable_prime_tower"] = "0"
+        process = d / "process.json"; process.write_text(json.dumps(proc))
+    run_py("patch3mf.py", model, d / "in.3mf", maps, tpl)
     t0 = time.time()
-    code = orca(["--load-settings", f"{DATA}/flat/{tag}_machine.json;{DATA}/flat/{tag}_process.json", "--load-filaments", filaments(tag, n),
+    code = orca(["--load-settings", f"{DATA}/flat/{tag}_machine.json;{process}", "--load-filaments", filaments(tag, n),
                  "--arrange", "1", "--slice", "1", "--outputdir", str(d), str(d / "in.3mf")], d, d / "log.txt")
     gcode = d / "plate_1.gcode"
     if code != 0 or not gcode.exists():
@@ -137,7 +145,9 @@ def slice_one(tag, model, n, work):
         except (OSError, ValueError): pass
         return {"printer": p["name"], "error": err}
     r = json.loads(run_py("stats.py", gcode, p["tc_extra"]))
-    if p["map"] != "single":     # no purge chute on a toolchanger: what is left over is ramming and priming on the tower
+    if no_tower:                 # nothing purged: what the totals leave over is rounding
+        r["tower"], r["flush"], r["zero_waste"] = 0.0, 0.0, True
+    elif p["map"] != "single":     # no purge chute on a toolchanger: what is left over is ramming and priming on the tower
         r["tower"], r["flush"] = round(r["tower"] + r["flush"], 2), 0.0
     r.update(printer=p["name"], slice_seconds=round(time.time() - t0, 1))
     if tag == "quadro":       # the toolpath the page's printer plays when this file is printed on its screen
@@ -151,7 +161,7 @@ busy = threading.Semaphore(int(os.environ.get("PARALLEL_JOBS", "2")))
 pool = ThreadPoolExecutor(6)
 
 
-def slice_upload(data, filename, emit=lambda event: None):
+def slice_upload(data, filename, emit=lambda event: None, zero_waste=False):
     work = pathlib.Path(tempfile.mkdtemp(dir=DATA))
     ext = ".stl" if filename.lower().endswith(".stl") else ".3mf"
     src = work / ("upload" + ext); src.write_bytes(data)
@@ -166,7 +176,7 @@ def slice_upload(data, filename, emit=lambda event: None):
     n = len(colours)
     if n > 4: return {"error": f"The model uses {n} colours; these printers hold at most 4."}
     emit({"stage": "slicing", "printers": list(PRINTERS), "colours": colours, "thumb": picture_of(src)})
-    futures, results = {pool.submit(slice_one, t, src, n, work): t for t in PRINTERS}, {}
+    futures, results = {pool.submit(slice_one, t, src, n, work, zero_waste and t == "quadro"): t for t in PRINTERS}, {}
     for f in as_completed(futures):
         t = futures[f]; results[t] = f.result()
         emit({"done": t, "seconds": results[t].get("slice_seconds"), "error": results[t].get("error")})
@@ -186,7 +196,7 @@ class Handler(BaseHTTPRequestHandler):
     def cors(self):
         o = self.headers.get("Origin", "")
         self.send_header("Access-Control-Allow-Origin", o if o in ORIGINS or "*" in ORIGINS else ORIGINS[0])
-        self.send_header("Access-Control-Allow-Headers", "Content-Type, X-Filename"); self.send_header("Vary", "Origin")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, X-Filename, X-Quadro-Mode"); self.send_header("Vary", "Origin")
 
     def reply(self, code, body, ctype="application/json", filename=None):
         data = body if isinstance(body, bytes) else json.dumps(body, separators=(",", ":")).encode()
@@ -237,6 +247,7 @@ class Handler(BaseHTTPRequestHandler):
         size = int(self.headers.get("Content-Length", 0))
         if not 0 < size <= MAX_BYTES: return self.reply(413, {"error": f"Upload a file up to {MAX_BYTES >> 20} MB."})
         data, name = self.rfile.read(size), self.headers.get("X-Filename", "model.3mf")
+        zero = self.headers.get("X-Quadro-Mode", "") == "zero-waste"      # Quadro without a prime tower
         if "application/x-ndjson" in self.headers.get("Accept", ""):
             emit = self.stream()
             emit({"stage": "received", "bytes": size})
@@ -244,13 +255,13 @@ class Handler(BaseHTTPRequestHandler):
                 emit({"stage": "queued"})
                 if not busy.acquire(timeout=120):
                     emit({"error": "The slicer is busy, try again in a minute."}); return emit(None)
-            try: emit({"result": slice_upload(data, name, emit)})
+            try: emit({"result": slice_upload(data, name, emit, zero)})
             except subprocess.TimeoutExpired: emit({"error": "Slicing took too long for this model."})
             except Exception as e: emit({"error": "Slicing failed: " + str(e)[:200]})
             finally: busy.release(); emit(None)
             return
         if not busy.acquire(timeout=120): return self.reply(503, {"error": "The slicer is busy, try again in a minute."})
-        try: self.reply(200, slice_upload(data, name))
+        try: self.reply(200, slice_upload(data, name, zero_waste=zero))
         except subprocess.TimeoutExpired: self.reply(504, {"error": "Slicing took too long for this model."})
         except Exception as e: self.reply(500, {"error": "Slicing failed: " + str(e)[:200]})
         finally: busy.release()
