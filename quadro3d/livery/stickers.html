@@ -23,7 +23,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 
 const THEMES = { red: "#d7191f", yellow: "#ffc20e", blue: "#0a63c9", green: "#1fa64a" };
-const INK = "#111214", WHITE = "#f4f4f1";
+const INK = "#111214", WHITE = "#f4f4f1", SILVER = "#b9bec4";
 const PX = 12;                                        // canvas pixels per millimetre
 // The family: block ends cut at 60 degrees, bands across narrow panels at 30, three bar weights, one gap.
 const RAKE = Math.tan(Math.PI / 6);                   // block ends: horizontal run per unit height (60 degrees)
@@ -62,43 +62,55 @@ function logo(g, x, y, h, which) { const im = LOGO[which]; g.drawImage(im, x, y,
 // ---------- the stickers (W x H in mm) ----------
 const ART = {
   // X beam front plate, the hero: 720 x 31, left from the front is the start. About 95 mm at each end sit behind the
-  // Qdock covers, so the composition lives between 100 and 625.
+  // Qdock covers, so the composition lives between 100 and 640: a heavy black start, the colour blade carrying QUADRO,
+  // the three bars as the brand mark, and a black end block with Co Print. A black chassis line ties them underneath.
   beam(g, W, H, c) {
-    blade(g, 96, 150, 0, H, INK);                                       // black block: the start
-    blade(g, 150 + GAP, 380, 0, H, c);                                  // the main colour blade
-    text(g, "QUADRO", 176, H - 6, 26, INK, 900, true, 0.8);
-    bars(g, 386, 0, H, INK);                                            // black bars leave the blade
-    blade(g, 424, 560, H - 2.4, H, c, 0);                               // a thin colour line runs on
-    text(g, "4 INDEPENDENT TOOLHEADS", 430, H - 8, 8, INK, 600, false, 1.2);
-    blade(g, 560 + GAP, 640, 0, H, INK);                                // black block at the end with the Co Print mark
-    logo(g, 584, 8, 15, "white");
+    const base = 6.5;                                                   // the black chassis line along the bottom
+    blade(g, 96, 214, 0, H, INK);                                       // heavy black start
+    const up = RAKE * (base + GAP);                                     // canvas y runs down: the chassis line is at the bottom
+    blade(g, 214 + GAP + up, 476 + up, 0, H - base - GAP, c);           // colour blade, sitting on the chassis line
+    blade(g, 214 + GAP, 476, H - base, H, INK);                         // chassis line under it
+    text(g, "QUADRO", 236, H - base - 4.2, 23.5, INK, 900, true, 1.4);
+    let x = 476 + up + GAP + 2;                                              // the brand mark: three bars, black, full height
+    for (const w of [8, 5, 2.6]) { blade(g, x, x + w, 0, H, INK); x += w + 3; }
+    blade(g, x + 3, 650, 0, H, INK);                                    // black end block
+    logo(g, x + 22, 5.2, 12.5, "white");
+    text(g, "4 INDEPENDENT TOOLHEADS", x + 22, H - 5, 5.6, c, 700, false, 1.3);
+    text(g, "SPECIAL SERIES", 120, H - 5, 5.6, c, 700, false, 1.6);    // a quiet line inside the start block
   },
   // Z tower front strip: 22.6 x 383, y up from the base (12 mm above the deck). Mirrored on the second tower.
+  // A heavy black foot and a colour blade above it; the two feet differ by 18 mm, the blades are equal.
   tower(g, W, H, c, i) {
-    const foot = H - (i ? 110 : 140);                                   // the two towers step, so the pair reads asymmetric
-    below(g, W, H, foot, INK);                                          // black foot
-    band(g, W, foot - GAP, 120, c);                                     // colour blade above it
-    let y = H - 318;
-    for (const w of [6, 4, 2.4]) { band(g, W, y, w, c); y -= w + 2.6; }
-  },
-  // Z tower inner side face: 30 x 383. The black foot, then a long colour line ending in a raked tip.
-  towerSide(g, W, H, c, i) {
-    const foot = H - (i ? 110 : 140);
+    const foot = H - (i ? 118 : 136);
     below(g, W, H, foot, INK);
-    g.fillStyle = c; g.beginPath(); g.moveTo(4, foot - GAP - SLOPE * 4); g.lineTo(7.5, foot - GAP - SLOPE * 7.5); g.lineTo(7.5, 70); g.lineTo(4, 76); g.closePath(); g.fill();
+    band(g, W, foot - GAP, 104, c);
+    band(g, W, foot - GAP - 104 - 4, 3, INK);                           // a short black cap line closes the blade
   },
-  // toolhead front cover: 34.9 x 76 (the clear LED window is above it). Same on all four, with the tool number.
-  head(g, W, H, c, i) {
-    below(g, W, H, H - 18, c);
-    let y = H - 18 - GAP - 1;
-    for (const w of [3.6, 2.4, 1.4]) { band(g, W, y, w, c); y -= w + 2.2; }
-    text(g, "T" + (i + 1), W - 3, H - 3.5, 11, INK, 900, true, 0.4, "right");
+  // Z tower inner side face: 30 x 383. The black foot, then one long colour line ending in a raked tip.
+  towerSide(g, W, H, c, i) {
+    const foot = H - (i ? 118 : 136);
+    below(g, W, H, foot, INK);
+    g.fillStyle = c; g.beginPath(); g.moveTo(4, foot - GAP - SLOPE * 4); g.lineTo(8, foot - GAP - SLOPE * 8); g.lineTo(8, 70); g.lineTo(4, 77); g.closePath(); g.fill();
   },
-  // Qdock end cover, outer face of its box: 81 x 36 on black plastic. Left and right docks mirror.
-  dock(g, W, H, c, i) {
+  // toolhead front cover: 34.9 x 62, between the printed "Tool n" label below and the LED window above. The same on
+  // all four: a colour wedge with a silver line above it, and a small colour shard answering it at the top corner.
+  head(g, W, H, c) {
+    below(g, W, H, H - 14, c);                                          // colour wedge rising to the right
+    band(g, W, H - 14 - GAP, 2.2, SILVER);                              // brushed-silver line
+    band(g, W, H - 14 - GAP - 2.2 - GAP, 7, INK);                       // black band, darker than the cover
+    g.fillStyle = c; g.beginPath(); g.moveTo(-1, 9); g.lineTo(-1, -1); g.lineTo(13, -1); g.closePath(); g.fill();   // top shard
+  },
+  // Qdock end cover, outer face of its box: 81 x 36 on black plastic. The brand mark in colour, then Q-DOCK.
+  dock(g, W, H, c) {
     blade(g, -12, 18, 0, H, c);
-    bars(g, 18 + GAP + 1, 0, H, c, 0.9);
+    let x = 18 + GAP + 1;
+    for (const w of [5, 3.2, 1.8]) { blade(g, x, x + w, 0, H, c); x += w + 2.2; }
     text(g, "Q-DOCK", 45, H / 2 + 4, 10.5, WHITE, 800, true, 1);
+  },
+  // base front, the flat tilted centre panel between the factory-printed Co Print and QUADRO: 100 x 9, low and plain
+  baseStrip(g, W, H, c) {
+    blade(g, 0, W - RAKE * H, 0, H, INK);
+    blade(g, W * 0.56, W - RAKE * H - 2.5, 2, H - 2, c);
   },
 };
 
@@ -112,7 +124,8 @@ const PLACES = [
   { part: /z-alu-profile-3-2$/, faces: () => [
     { art: "tower", i: 1, o: [220.9, 12, 249.6], u: [-1, 0, 0], v: [0, 1, 0], n: [0, 0, -1], w: 22.6, h: 383, mirror: true },
     { art: "towerSide", i: 1, o: [193.2, 12, 254.6], u: [0, 0, 1], v: [0, 1, 0], n: [-1, 0, 0], w: 30, h: 383 }] },
-  { part: /x-inject-plastic-8$/, faces: (b, k) => [{ art: "head", i: k, o: [b.max.x - 10.1, b.min.y + 11, b.min.z], u: [-1, 0, 0], v: [0, 1, 0], n: [0, 0, -1], w: 34.9, h: 76 }] },
+  { part: /x-inject-plastic-8$/, faces: (b, k) => [{ art: "head", i: k, o: [b.max.x - 10.1, b.min.y + 25, b.min.z], u: [-1, 0, 0], v: [0, 1, 0], n: [0, 0, -1], w: 34.9, h: 62 }] },
+  { part: /y-inject-plastic-2-revised/, faces: () => [{ art: "baseStrip", o: [88, -43.6 + 4 * 0.9682, -70.8 + 4 * 0.2504], u: [-1, 0, 0], v: [0, 0.9682, 0.2504], n: [0, 0.2504, -0.9682], w: 100, h: 9 }] },
   { part: /x-inject-plastic-6$/, faces: () => [{ art: "dock", i: 1, o: [-355.5, 80, 202], u: [0, 0, 1], v: [0, 1, 0], n: [-1, 0, 0], w: 81, h: 36 }] },
   { part: /x-inject-plastic-2$/, faces: () => [{ art: "dock", i: 0, o: [412.5, 80, 283], u: [0, 0, -1], v: [0, 1, 0], n: [1, 0, 0], w: 81, h: 36 }] },
 ];
