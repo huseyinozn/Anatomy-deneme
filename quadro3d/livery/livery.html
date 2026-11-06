@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quadro livery</title>
+<style>
+  :root { color-scheme: light; }
+  html, body { margin: 0; height: 100%; background: #e9eaec; font: 14px system-ui, sans-serif; }
+  #stage { position: fixed; inset: 0; }
+  #ui { position: fixed; left: 12px; top: 12px; display: flex; gap: 6px; flex-wrap: wrap; }
+  #ui button { padding: 8px 12px; border-radius: 8px; border: 1px solid #c8cbd0; background: #fff; }
+</style>
+</head><body>
+<div id="stage"></div>
+<div id="ui"></div>
+<script type="importmap">{"imports": {"three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+// Livery concepts for Quadro: vinyl wraps on the aluminium profiles and the large plastic parts, drawn straight onto
+// the production CAD model. Each wrap is a procedural pattern evaluated per pixel in world millimetres, so it lands on
+// the real faces at their real size; the theme only swaps the colours.
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+
+const THEMES = {
+  red: { main: "#d7191f", dark: "#141516", line: "#ffffff", name: "Red" },
+  yellow: { main: "#ffc20e", dark: "#141516", line: "#ffffff", name: "Yellow" },
+  blue: { main: "#0a63c9", dark: "#141516", line: "#ffffff", name: "Blue" },
+  green: { main: "#22a547", dark: "#141516", line: "#ffffff", name: "Green" },
+};
+// which wrap goes on which part (CAD part names); the number picks the pattern in the shader
+const WRAPS = [
+  [/z-alu-profile-3-[12]/, 1],        // the two Z towers
+  [/z-alu-profile-5/, 2],             // top beam
+  [/x-alu-profile-[12]-16-06/, 3],    // X beam
+  [/y-inject-plastic-2-revised/, 4],  // base shell
+  [/z-inject-plastic-1[01]/, 5],      // spool holder arms
+  [/x-inject-plastic-[89]$/, 6],      // toolhead covers
+  [/x-inject-plastic-(3|17)$/, 7],    // Qdock bars
+];
+
+const stage = document.getElementById("stage");
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
+stage.append(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color("#e9eaec");
+scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
+const sun = new THREE.DirectionalLight(0xffffff, 1.6); sun.position.set(-1, 2, -1.6); scene.add(sun);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8a8a, 0.5));
+const camera = new THREE.PerspectiveCamera(30, 1, 0.01, 20);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+function resize() { const { width, height } = stage.getBoundingClientRect(); renderer.setSize(width, height, false); camera.aspect = width / height; camera.updateProjectionMatrix(); }
+new ResizeObserver(resize).observe(stage); resize();
+
+// the QUADRO wordmark for the X beam, drawn once per theme into a canvas
+function wordmark(t) {
+  const cv = document.createElement("canvas"); cv.width = 2048; cv.height = 128;
+  const g = cv.getContext("2d");
+  g.font = "italic 900 104px 'Arial Black', Impact, system-ui, sans-serif"; g.textBaseline = "middle";
+  g.fillStyle = "#ffffff"; g.fillText("QUADRO", 24, 68);
+  const w = g.measureText("QUADRO").width;
+  g.font = "italic 700 40px system-ui, sans-serif"; g.fillStyle = t.dark === t.main ? "#fff" : "#ffffff";
+  g.fillText("4-TOOLHEAD", 48 + w, 52); g.fillText("SYSTEM", 48 + w, 92);
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
+  return tex;
+}
+
+const uniforms = { uStyle: { value: 0 }, uMain: { value: new THREE.Color() }, uDark: { value: new THREE.Color() }, uLine: { value: new THREE.Color() }, uWord: { value: null } };
+// one material per wrapped part: the theme colours are shared, uLo/uHi hold that part's own bounds (world mm) so a
+// pattern can be laid out on the part itself (the four toolheads share one design, wherever each one is parked)
+function makeWrapMaterial(pattern, base, lo, hi) {
+  const m = base.clone();
+  m.onBeforeCompile = (sh) => {
+    Object.assign(sh.uniforms, uniforms, { uPattern: { value: pattern }, uLo: { value: lo }, uHi: { value: hi } });
+    sh.vertexShader = sh.vertexShader
+      .replace("#include <common>", "#include <common>\nvarying vec3 vWP; varying vec3 vWN;")
+      .replace("#include <project_vertex>", "#include <project_vertex>\nvWP = (modelMatrix * vec4(transformed, 1.0)).xyz * 1000.0; vWN = normalize(mat3(modelMatrix) * objectNormal);");
+    sh.fragmentShader = sh.fragmentShader
+      .replace("#include <common>", `#include <common>
+varying vec3 vWP; varying vec3 vWN;
+uniform vec3 uMain, uDark, uLine, uLo, uHi; uniform int uPattern, uStyle; uniform sampler2D uWord;
+float inR(float v, float a, float b) { return step(a, v) * step(v, b); }
+// parallel 45-degree slashes: n stripes of width w, period p, starting at s along d
+float slashes(float d, float s, float w, float p, float n) { float k = (d - s) / p; return step(0.0, k) * step(k, n) * step(fract(k), w / p); }
+vec3 livery(vec3 P, vec3 N, vec3 base) {
+  // style 1, "black edition": the frame and beam are black with colour accents (colours swap on those parts)
+  vec3 uMain = uMain, uDark = uDark;
+  if (uStyle == 1 && (uPattern == 1 || uPattern == 2 || uPattern == 3 || uPattern == 5)) { vec3 t = uMain; uMain = uDark; uDark = t; }
+  // face coordinates: u runs left to right as seen from that face, v is height
+  vec3 A = abs(N); float u; float v = P.y;
+  if (A.y > A.x && A.y > A.z) { u = P.x; v = P.z; } else if (A.z >= A.x) u = P.x * sign(-N.z); else u = -P.z * sign(N.x);
+  vec3 L = P - uLo, S = uHi - uLo;     // position within this part
+  vec3 c = base;
+  if (uPattern == 1) {            // Z towers: colour, black foot with a raked cut, white pin line, three slashes up top
+    c = uMain;
+    float cut = P.y - (40.0 + 0.55 * u);
+    if (cut < 0.0) c = uDark; else if (cut < 5.0) c = uLine;
+    if (slashes(P.y + u, 330.0, 9.0, 20.0, 3.0) > 0.5) c = uDark;
+  } else if (uPattern == 2) {     // top beam: black with colour blades at both ends
+    c = uDark;
+    float e = abs(P.x - 28.0);
+    if (e + (P.y - 418.0) * 1.0 > 120.0) c = uMain;
+    if (abs(e + (P.y - 418.0) - 108.0) < 3.0) c = uLine;
+  } else if (uPattern == 3) {     // X beam: colour body, black raked ends, the wordmark, a white pin line underneath
+    c = uMain;
+    float x = P.x, y = P.y;       // beam front, left to right
+    float lean = (y - 75.0) * 0.9;
+    if (x + lean < -250.0 || x - lean > 300.0) c = uDark;
+    if (abs(x + lean + 250.0) < 3.0 || abs(x - lean - 300.0) < 3.0) c = uLine;
+    if (y < 80.0) c = uDark; else if (y < 83.0) c = uLine;
+    if (N.z < -0.5) {
+      vec2 t = vec2((-P.x + 170.0) / 360.0, (y - 88.0) / 30.0);   // the canvas reads left to right from the front (-x)
+      if (t.x > 0.0 && t.x < 1.0 && t.y > 0.0 && t.y < 1.0) { vec4 w = texture2D(uWord, t); c = mix(c, w.rgb, w.a); }
+    }
+  } else if (uPattern == 4) {     // base shell: a black skirt raked up towards the right, a colour band above it with
+    c = base;                     // three black slashes on the front, white above
+    if (A.y < 0.7) {
+      float rise = A.z >= A.x ? u : (P.z + 70.0) * 0.4;
+      float d = L.y - (16.0 + 0.06 * (rise + 200.0));
+      if (d < 0.0) c = uDark;
+      else if (d < 3.0) c = uLine;
+      else if (d < 30.0) c = uMain;
+      if (N.z < -0.6 && L.y < 46.0 && slashes(u + L.y, 70.0, 10.0, 22.0, 3.0) > 0.5) c = uDark;
+    }
+  } else if (uPattern == 5) {     // spool arms: colour, black tips
+    c = uMain;
+    if (P.y > 340.0 || P.y < -40.0) c = uDark;
+  } else if (uPattern == 6) {     // toolhead covers: black, a colour wedge rising across the lower front and sides
+    c = uDark;
+    float lu = A.z >= A.x ? (P.x - uLo.x) * sign(-N.z) : (uHi.z - P.z) * sign(N.x);
+    float edge = 34.0 + 0.55 * lu;
+    if (L.y < edge) c = uMain;
+    if (abs(L.y - edge) < 1.6) c = uLine;
+  } else if (uPattern == 7) {     // Qdock bars: black with a colour speed line
+    c = uDark;
+    if (inR(P.y, 40.0, 47.0) > 0.5) c = uMain;
+  }
+  return c;
+}`)
+      .replace("#include <color_fragment>", "#include <color_fragment>\ndiffuseColor.rgb = livery(vWP, normalize(vWN), diffuseColor.rgb);");
+  };
+  m.customProgramCacheKey = () => "wrap" + pattern;
+  return m;
+}
+
+const MAT = {
+  head: new THREE.MeshStandardMaterial({ color: 0x25282c, roughness: 0.55, metalness: 0.1 }),
+  dock: new THREE.MeshStandardMaterial({ color: 0x1d1f22, roughness: 0.5, metalness: 0.2 }),
+  alu: new THREE.MeshStandardMaterial({ color: 0xe6e9ec, roughness: 0.3, metalness: 0.45 }),
+  rail: new THREE.MeshStandardMaterial({ color: 0x8e949a, roughness: 0.28, metalness: 0.9 }),
+  motor: new THREE.MeshStandardMaterial({ color: 0x3a3d42, roughness: 0.45, metalness: 0.5 }),
+  shell: new THREE.MeshStandardMaterial({ color: 0xe8e9eb, roughness: 0.6, metalness: 0 }),
+  pei: new THREE.MeshStandardMaterial({ color: 0x1b1c1e, roughness: 0.85, metalness: 0.2 }),
+  dark: new THREE.MeshStandardMaterial({ color: 0x303236, roughness: 0.6, metalness: 0.2 }),
+  other: new THREE.MeshStandardMaterial({ color: 0xa3a7ac, roughness: 0.45, metalness: 0.4 }),
+};
+// vinyl: satin finish, a little gloss
+const VINYL = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.38, metalness: 0.05 });
+function baseMaterial(p) {
+  if (p.includes("toolhead")) return MAT.head;
+  if (p.includes("pei sheet") && !p.includes("magnet")) return MAT.pei;
+  if (p.includes("yan-kapak")) return MAT.dock;
+  if (p.includes("mgn")) return MAT.rail;
+  if (/nema|17hs|ldo|motor/.test(p)) return MAT.motor;
+  if (/alu-profile|alu-ext|z-axis-alu|x-alu|y-alu/.test(p)) return MAT.alu;
+  if (/inject|kapak|cover|kasa|filament|heated|move face|fillet|lcd/.test(p)) return MAT.shell;
+  if (/screw|vida/.test(p)) return MAT.dark;
+  return MAT.other;
+}
+let center = new THREE.Vector3(), radius = 1;
+new GLTFLoader().load("../quadro.glb", (gltf) => {
+  const root = gltf.scene; scene.add(root); root.updateMatrixWorld(true);
+  root.traverse((o) => {
+    if (!o.isMesh) return;
+    const at = gltf.parser.associations.get(o);
+    const raw = at && at.nodes !== undefined ? gltf.parser.json.nodes[at.nodes].name || "" : "";
+    let path = "", n = o; while (n) { path += " " + n.name; n = n.parent; }
+    const p = path.toLowerCase().replace(/_/g, " ");
+    const part = raw.split(":").pop().toLowerCase();
+    const wrap = WRAPS.find(([re]) => re.test(part));
+    if (wrap) {
+      const b = new THREE.Box3().setFromObject(o);
+      o.material = makeWrapMaterial(wrap[1], VINYL, b.min.clone().multiplyScalar(1000), b.max.clone().multiplyScalar(1000));
+    }
+    else o.material = baseMaterial(p);
+  });
+  const box = new THREE.Box3().setFromObject(root); box.getCenter(center); radius = box.getSize(new THREE.Vector3()).length() / 2;
+  setTheme(new URLSearchParams(location.search).get("theme") || "red");
+  setView(new URLSearchParams(location.search).get("view") || "iso");
+  window.__ready = true;
+});
+function setTheme(k) {
+  const t = THEMES[k]; uniforms.uMain.value.set(t.main); uniforms.uDark.value.set(t.dark); uniforms.uLine.value.set(t.line);
+  uniforms.uWord.value?.dispose(); uniforms.uWord.value = wordmark(t);
+}
+const VIEWS = { iso: [215, 20, 1.0, [0, 0, 0]], front: [180, 6, 0.95, [0, 0, 0]], side: [260, 12, 1.0, [0, 0, 0]], beam: [195, 10, 0.5, [0.03, 0.1, 0.2]], tower: [235, 14, 0.55, [-0.16, 0.18, 0.27]], head: [200, 8, 0.32, [0.32, 0.12, 0.17]] };
+function setView(k) {
+  const [az, el, f, off] = VIEWS[k], a = THREE.MathUtils.degToRad(az), e = THREE.MathUtils.degToRad(el), d = radius * 2.4 * f;
+  const target = off.some((v) => v) ? new THREE.Vector3(...off) : center.clone();
+  camera.position.copy(target).add(new THREE.Vector3(Math.sin(a) * Math.cos(e) * d, Math.sin(e) * d, Math.cos(a) * Math.cos(e) * d));
+  controls.target.copy(target); controls.update();
+}
+window.__set = (theme, view, style = 0) => { uniforms.uStyle.value = style; setTheme(theme); setView(view); };
+const ui = document.getElementById("ui");
+for (const k of Object.keys(THEMES)) { const b = document.createElement("button"); b.textContent = THEMES[k].name; b.onclick = () => setTheme(k); ui.append(b); }
+for (const k of Object.keys(VIEWS)) { const b = document.createElement("button"); b.textContent = k; b.onclick = () => setView(k); ui.append(b); }
+renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, camera); });
+</script>
+</body></html>
