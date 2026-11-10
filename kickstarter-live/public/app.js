@@ -10,12 +10,14 @@
   };
 
   const cfg = Object.assign(
-    { project: "", title: "Kickstarter Live", goal: 10000, currency: "$", launchAt: null, endAt: null, pollSeconds: 10, maxChimes: 5 },
+    { project: "", title: "Kickstarter Live", goal: 10000, currency: "$", nativeGoal: null, nativeCurrency: "", launchAt: null, endAt: null, pollSeconds: 10, maxChimes: 5 },
     window.CAMPAIGN || {},
     store.get("ksl:overrides", {})
   );
   if (params.get("project")) cfg.project = params.get("project");
   cfg.project = normalizeProject(cfg.project);
+  // Kickstarter reports pledged in the project currency; convert to the display currency.
+  const RATE = cfg.nativeGoal > 0 ? cfg.goal / cfg.nativeGoal : 1;
 
   function normalizeProject(s) {
     if (!s) return "";
@@ -30,7 +32,7 @@
     gate: $("gate"), gateBtn: $("gateBtn"), title: $("title"), status: $("status"),
     pre: $("pre"), live: $("live"), countdown: $("countdown"), launchText: $("launchText"),
     barFill: $("barFill"), pledged: $("pledged"), goalText: $("goalText"),
-    backers: $("backers"), percent: $("percent"), daysBox: $("daysBox"), days: $("days"), daysLabel: $("daysLabel"),
+    nativeText: $("nativeText"), backers: $("backers"), percent: $("percent"), daysBox: $("daysBox"), days: $("days"), daysLabel: $("daysLabel"),
     feed: $("feed"), toasts: $("toasts"), chime: $("chime"),
     soundBtn: $("soundBtn"), testBtn: $("testBtn"), fsBtn: $("fsBtn"), cfgBtn: $("cfgBtn"), cfg: $("cfg"),
   };
@@ -90,6 +92,10 @@
     f("percent", el.percent, pct, (v) => Math.floor(v) + "%");
     el.barFill.style.width = Math.min(100, pct) + "%";
     el.goalText.textContent = `pledged of ${fmtMoney(cfg.goal)} goal`;
+    if (RATE !== 1 && cfg.nativeCurrency) {
+      const n = (v) => cfg.nativeCurrency + Math.round(v).toLocaleString("en-US");
+      el.nativeText.textContent = `Kickstarter: ${n(s.pledged / RATE)} / ${n(cfg.nativeGoal)}`;
+    }
     renderDays(s.state);
   }
 
@@ -195,7 +201,7 @@
         showMode("pre");
         return;
       }
-      onStats({ backers: Number(p.backers_count) || 0, pledged: parseFloat(p.pledged) || 0, state: p.state });
+      onStats({ backers: Number(p.backers_count) || 0, pledged: (parseFloat(p.pledged) || 0) * RATE, state: p.state });
       setStatus(p.state === "live" ? "ok" : "", (p.state === "live" ? "Canlı" : p.state) + " · " + fmtTime(Date.now()));
     } catch (e) {
       setStatus("err", "Bağlantı yok — tekrar deneniyor");

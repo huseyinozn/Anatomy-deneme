@@ -23,7 +23,8 @@ Sonra tarayıcıda **http://localhost:3000** adresini aç ve **Başlat**'a tıkl
 | alan | açıklama |
 |---|---|
 | `project` | Kickstarter linki ya da `kullanici/proje` kısmı |
-| `goal` | hedef tutar |
+| `nativeGoal`, `nativeCurrency` | Kickstarter'daki gerçek hedef ve para birimi (örn. 7850, £) |
+| `goal`, `currency` | ekranda gösterilen hedef (örn. 10000, $). Tutarlar `goal / nativeGoal` kuruyla çevrilir |
 | `launchAt` | lansman zamanı. Geri sayım buna göre işler |
 | `endAt` | bitiş zamanı. Doldurulursa "days to go" görünür |
 | `pollSeconds` | kaç saniyede bir kontrol edileceği (varsayılan 10) |

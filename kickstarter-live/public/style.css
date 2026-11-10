@@ -48,6 +48,7 @@ button { font: inherit; }
 .stat.main .num { font-size: clamp(56px, 12vw, 140px); }
 .stat .label { color: var(--muted); font-size: clamp(15px, 1.8vw, 20px); margin-top: 4px; }
 .green { color: var(--green); }
+.stat .label.sub { font-size: clamp(13px, 1.4vw, 15px); margin-top: 2px; opacity: .8; }
 .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 24px; }
 .bump { animation: bump .6s ease; }
 @keyframes bump { 30% { transform: scale(1.06); color: var(--green); } }
