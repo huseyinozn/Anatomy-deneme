@@ -16,6 +16,15 @@ Sonra tarayıcıda **http://localhost:3000** adresini aç ve **Başlat**'a tıkl
 - Test için: **http://localhost:3000/?demo=1** adresi birkaç saniyede bir sahte backer üretir. Sesi ve animasyonu böyle deneyebilirsin.
 - **▶ Sesi dene** butonu sesi bir kez çalar.
 
+## TV'de lansmana kadar açık bırakmak
+
+1. Sayfayı aç, **Başlat**'a ve **⛶ Tam ekran**'a bas. Sonra dokunma. Lansmana kadar geri sayım gösterir.
+2. Kickstarter'da kampanya açılınca (10 saniye içinde) sayfa kendiliğinden canlı ekrana geçer. "🚀 Kampanya canlı!" bildirimi çıkar ve o ana kadar gelen backer'lar için ses çalar.
+3. Geri sayım bittiği halde kampanya henüz açılmadıysa "Birazdan canlı…" yazar ve beklemeye devam eder.
+4. Bilgisayarın **uyku modunu kapat**. Sayfayı **yenileme**: yenilersen tarayıcı sesi tekrar kilitler ve yeniden **Başlat**'a basman gerekir.
+
+Ses TV'den gelsin istiyorsan en kolay yol laptop'u HDMI ile bağlamak. Smart TV tarayıcısı kullanacaksan sunucu çalışırken ekranda yazan `Aynı ağdan (TV)` adresini TV'de aç. Ama TV tarayıcıları ses ve tam ekran konusunda sorun çıkarabilir.
+
 ## Ayarlar
 
 `public/config.js` dosyasını düzenle. Ya da sayfadaki **⚙ Ayarlar** menüsünü kullan:

@@ -30,7 +30,7 @@
   const $ = (id) => document.getElementById(id);
   const el = {
     gate: $("gate"), gateBtn: $("gateBtn"), title: $("title"), status: $("status"),
-    pre: $("pre"), live: $("live"), countdown: $("countdown"), launchText: $("launchText"),
+    pre: $("pre"), eyebrow: $("eyebrow"), live: $("live"), countdown: $("countdown"), launchText: $("launchText"),
     barFill: $("barFill"), pledged: $("pledged"), goalText: $("goalText"),
     nativeText: $("nativeText"), backers: $("backers"), percent: $("percent"), daysBox: $("daysBox"), days: $("days"), daysLabel: $("daysLabel"),
     feed: $("feed"), toasts: $("toasts"), chime: $("chime"),
@@ -126,6 +126,7 @@
     const d = Math.floor(ms / 864e5), h = Math.floor(ms / 36e5) % 24, m = Math.floor(ms / 6e4) % 60, s = Math.floor(ms / 1e3) % 60;
     const set = (k, v) => (el.countdown.querySelector(`[data-k="${k}"]`).textContent = v);
     set("d", d); set("h", String(h).padStart(2, "0")); set("m", String(m).padStart(2, "0")); set("s", String(s).padStart(2, "0"));
+    el.eyebrow.textContent = ms > 0 ? "Kampanya başlıyor" : "Birazdan canlı…";
   }
   if (cfg.launchAt) {
     el.launchText.textContent = new Date(cfg.launchAt).toLocaleString("tr-TR", { dateStyle: "full", timeStyle: "short" });
@@ -153,10 +154,16 @@
 
   // ── change detection ──────────────────────────────────────────────────────
   const lastKey = `ksl:last:${DEMO ? "demo" : cfg.project}`;
-  let last = null; // first fetch after load = silent baseline
+  let last = null; // first fetch after load = silent baseline…
+  let sawPrelaunch = false; // …unless we watched the launch happen: then count from zero
 
   function onStats(s) {
     showMode("live");
+    if (!last && sawPrelaunch) {
+      // launch happened while this page was open: every backer so far is new
+      last = { backers: 0, pledged: 0 };
+      toast("🚀 Kampanya canlı!");
+    }
     if (!last) {
       renderStats(s, false);
       last = s; store.set(lastKey, s);
@@ -190,14 +197,21 @@
       const res = await fetch(`/api/stats?project=${encodeURIComponent(cfg.project)}`, { cache: "no-store" });
       const data = await res.json().catch(() => ({}));
       const p = data.project;
+      // Kickstarter answers 404 until the project is launched
+      if (res.status === 404 && !last) {
+        sawPrelaunch = true;
+        setStatus("", "Lansman bekleniyor · " + fmtTime(Date.now()));
+        showMode("pre");
+        return;
+      }
       if (!res.ok || !p) {
-        const before = cfg.launchAt && Date.now() < new Date(cfg.launchAt);
-        setStatus(before ? "" : "err", before ? "Lansman bekleniyor" : `Veri alınamadı (${res.status})`);
+        setStatus("err", `Veri alınamadı (${res.status}) — tekrar deneniyor`);
         if (!last) showMode("pre");
         return;
       }
       if (p.state !== "live" && !last && (p.state === "submitted" || p.state === "started" || p.state === "draft")) {
-        setStatus("", "Lansman bekleniyor");
+        sawPrelaunch = true;
+        setStatus("", "Lansman bekleniyor · " + fmtTime(Date.now()));
         showMode("pre");
         return;
       }

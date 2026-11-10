@@ -79,4 +79,10 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, () => {
   console.log(`Kickstarter Live → http://localhost:${PORT}`);
   console.log(`Demo (test)      → http://localhost:${PORT}/?demo=1`);
+  // addresses a TV / phone on the same Wi-Fi can open
+  for (const list of Object.values(require("os").networkInterfaces())) {
+    for (const a of list || []) {
+      if (a.family === "IPv4" && !a.internal) console.log(`Aynı ağdan (TV)  → http://${a.address}:${PORT}`);
+    }
+  }
 });
