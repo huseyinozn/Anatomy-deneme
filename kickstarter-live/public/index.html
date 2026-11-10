@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kickstarter Live</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="gate" class="gate">
+  <button id="gateBtn" class="gate-btn">
+    <span class="gate-icon">🔔</span>
+    <span>Başlat</span>
+    <small>Tarayıcılar sesi ancak bir tıklamadan sonra çalar</small>
+  </button>
+</div>
+
+<main class="wrap">
+  <header class="top">
+    <h1 id="title">Kickstarter Live</h1>
+    <div id="status" class="status"><i></i><span>Bağlanıyor…</span></div>
+  </header>
+
+  <!-- Before launch -->
+  <section id="pre" class="pre" hidden>
+    <p class="eyebrow">Kampanya başlıyor</p>
+    <div class="countdown" id="countdown">
+      <div><b data-k="d">0</b><span>gün</span></div>
+      <div><b data-k="h">00</b><span>saat</span></div>
+      <div><b data-k="m">00</b><span>dakika</span></div>
+      <div><b data-k="s">00</b><span>saniye</span></div>
+    </div>
+    <p class="muted" id="launchText"></p>
+  </section>
+
+  <!-- Live stats (Kickstarter-style) -->
+  <section id="live" class="live">
+    <div class="bar"><div id="barFill" class="bar-fill"></div></div>
+
+    <div class="stat main">
+      <div class="num green" id="pledged">$0</div>
+      <div class="label" id="goalText">pledged of $0 goal</div>
+    </div>
+
+    <div class="row">
+      <div class="stat">
+        <div class="num" id="backers">0</div>
+        <div class="label">backers</div>
+      </div>
+      <div class="stat">
+        <div class="num" id="percent">0%</div>
+        <div class="label">funded</div>
+      </div>
+      <div class="stat" id="daysBox" hidden>
+        <div class="num" id="days">0</div>
+        <div class="label" id="daysLabel">days to go</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="feed">
+    <h2>Son destekler</h2>
+    <ol id="feed"><li class="empty">Henüz yok — ilk backer'ı bekliyoruz.</li></ol>
+  </section>
+
+  <footer class="controls">
+    <button id="soundBtn" title="Ses aç/kapat">🔊 Ses açık</button>
+    <button id="testBtn" title="Sesi dene">▶ Sesi dene</button>
+    <button id="fsBtn" title="Tam ekran">⛶ Tam ekran</button>
+    <button id="cfgBtn" title="Ayarlar">⚙ Ayarlar</button>
+  </footer>
+</main>
+
+<div id="toasts" class="toasts"></div>
+
+<dialog id="cfg">
+  <form method="dialog">
+    <h3>Ayarlar</h3>
+    <label>Kickstarter proje linki
+      <input name="project" placeholder="https://www.kickstarter.com/projects/kullanici/proje">
+    </label>
+    <label>Hedef tutar
+      <input name="goal" type="number" min="1" step="1">
+    </label>
+    <label>Bitiş tarihi (isteğe bağlı)
+      <input name="endAt" type="datetime-local">
+    </label>
+    <p class="muted small">Bu ayarlar bu tarayıcıda saklanır. Kalıcı varsayılanlar için <code>config.js</code> dosyasını düzenle.</p>
+    <menu>
+      <button value="cancel">Vazgeç</button>
+      <button value="save" class="primary">Kaydet</button>
+    </menu>
+  </form>
+</dialog>
+
+<audio id="chime" src="sounds/backer.mp3" preload="auto"></audio>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
