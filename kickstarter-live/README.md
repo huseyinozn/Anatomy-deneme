@@ -33,7 +33,8 @@ Ses TV'den gelsin istiyorsan en kolay yol laptop'u HDMI ile bağlamak. Smart TV 
 |---|---|
 | `project` | Kickstarter linki ya da `kullanici/proje` kısmı |
 | `nativeGoal`, `nativeCurrency` | Kickstarter'daki gerçek hedef ve para birimi (örn. 7850, £) |
-| `goal`, `currency` | ekranda gösterilen hedef (örn. 10000, $). Tutarlar `goal / nativeGoal` kuruyla çevrilir |
+| `usdRate` | sterlin → dolar kuru. Kickstarter'ın sayfasıyla aynı olsun diye 1.326 (Kickstarter'ın lansmanda sabitlediği kur) |
+| `goal`, `currency` | ekranda gösterilen hedef (Kickstarter'daki gibi $9,934) |
 | `launchAt` | lansman zamanı. Geri sayım buna göre işler |
 | `endAt` | bitiş zamanı. Doldurulursa "days to go" görünür |
 | `pollSeconds` | kaç saniyede bir kontrol edileceği (varsayılan 5) |

@@ -10,14 +10,14 @@
   };
 
   const cfg = Object.assign(
-    { project: "", title: "Kickstarter Live", goal: 10000, currency: "$", nativeGoal: null, nativeCurrency: "", launchAt: null, endAt: null, pollSeconds: 5, maxChimes: 8 },
+    { project: "", title: "Kickstarter Live", goal: 10000, currency: "$", nativeGoal: null, nativeCurrency: "", usdRate: null, launchAt: null, endAt: null, pollSeconds: 5, maxChimes: 8 },
     window.CAMPAIGN || {},
     store.get("ksl:overrides", {})
   );
   if (params.get("project")) cfg.project = params.get("project");
   cfg.project = normalizeProject(cfg.project);
   // Kickstarter reports pledged in the project currency; convert to the display currency.
-  const RATE = cfg.nativeGoal > 0 ? cfg.goal / cfg.nativeGoal : 1;
+  const RATE = cfg.usdRate > 0 ? cfg.usdRate : cfg.nativeGoal > 0 ? cfg.goal / cfg.nativeGoal : 1;
 
   function normalizeProject(s) {
     if (!s) return "";

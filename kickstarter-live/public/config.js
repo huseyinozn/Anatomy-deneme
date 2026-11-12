@@ -9,9 +9,11 @@ window.CAMPAIGN = {
   nativeGoal: 7850,
   nativeCurrency: "£",
 
-  // Ekranda gösterilen hedef ve para birimi. Kur = goal / nativeGoal
-  // (7850 £ = 10.000 $  ->  1 £ ≈ 1.274 $). Çeviri istemiyorsan goal'u nativeGoal ile aynı yap.
-  goal: 10000,
+  // Dolar gösterimi — Kickstarter'ın kendi sayfasıyla birebir aynı olsun diye:
+  // Kickstarter toplanan tutarı lansmanda sabitlenen kurla çeviriyor (1 £ = 1.326 $),
+  // hedefi ise $9,934 gösteriyor. Yüzde = dolar toplam / dolar hedef.
+  usdRate: 1.326,
+  goal: 9934,
   currency: "$",
 
   // Başlangıç / bitiş (Türkiye saati +03:00). 25 gün: 12 Kasım 19:00 → 7 Aralık 19:00
