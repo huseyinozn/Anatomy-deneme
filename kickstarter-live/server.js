@@ -11,7 +11,7 @@ const path = require("path");
 
 const PORT = Number(process.env.PORT) || 3000;
 const PUBLIC = path.join(__dirname, "public");
-const CACHE_MS = 5000; // Kickstarter itself caches stats.json for 5 s
+const CACHE_MS = 4000; // Kickstarter itself caches stats.json for 5 s
 
 const TYPES = {
   ".html": "text/html; charset=utf-8",

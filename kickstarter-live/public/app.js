@@ -10,7 +10,7 @@
   };
 
   const cfg = Object.assign(
-    { project: "", title: "Kickstarter Live", goal: 10000, currency: "$", nativeGoal: null, nativeCurrency: "", launchAt: null, endAt: null, pollSeconds: 10, maxChimes: 5 },
+    { project: "", title: "Kickstarter Live", goal: 10000, currency: "$", nativeGoal: null, nativeCurrency: "", launchAt: null, endAt: null, pollSeconds: 5, maxChimes: 8 },
     window.CAMPAIGN || {},
     store.get("ksl:overrides", {})
   );
@@ -46,25 +46,50 @@
 
   // ── sound ─────────────────────────────────────────────────────────────────
   let soundOn = store.get("ksl:sound", true);
-  let chimeQueue = 0, chiming = false;
+  // Web Audio: every chime is scheduled on the audio clock, so it plays on time even
+  // when the tab is in the background (browsers slow down setTimeout there, not audio).
+  let actx = null, buf = null, nextFree = 0;
+  const GAP = 0.9; // seconds between chimes
 
   function renderSoundBtn() {
     el.soundBtn.textContent = soundOn ? "🔊 Ses açık" : "🔇 Ses kapalı";
     el.soundBtn.classList.toggle("off", !soundOn);
   }
+  async function initAudio() {
+    try {
+      actx = new (window.AudioContext || window.webkitAudioContext)();
+      actx.resume();
+      const data = await (await fetch(el.chime.src)).arrayBuffer();
+      buf = await actx.decodeAudioData(data);
+    } catch { buf = null; }
+  }
   function chime(times = 1) {
     if (!soundOn) return;
-    chimeQueue = Math.min(chimeQueue + times, cfg.maxChimes);
-    if (!chiming) nextChime();
+    const n = Math.min(times, cfg.maxChimes);
+    if (actx && buf) {
+      if (actx.state !== "running") actx.resume();
+      let t = Math.max(actx.currentTime + 0.05, nextFree);
+      // never let the queue run more than ~10 s behind the live numbers
+      if (t - actx.currentTime > 10) t = actx.currentTime + 0.05;
+      for (let i = 0; i < n; i++) {
+        const src = actx.createBufferSource();
+        src.buffer = buf; src.connect(actx.destination); src.start(t);
+        t += GAP;
+      }
+      nextFree = t;
+    } else {
+      // fallback: plain <audio>
+      const a = el.chime.paused ? el.chime : el.chime.cloneNode();
+      a.currentTime = 0; a.play().catch(() => {});
+    }
   }
-  function nextChime() {
-    if (chimeQueue <= 0) { chiming = false; return; }
-    chiming = true; chimeQueue--;
-    // reuse the element unlocked by the click (Safari only allows that one)
-    const a = el.chime.paused ? el.chime : el.chime.cloneNode();
-    a.currentTime = 0;
-    a.play().catch(() => {});
-    setTimeout(nextChime, 1100);
+
+  // timers in a worker are not throttled in background tabs the way page timers are
+  function everyMs(ms, fn) {
+    try {
+      const w = new Worker(URL.createObjectURL(new Blob([`setInterval(() => postMessage(0), ${ms});`], { type: "text/javascript" })));
+      w.onmessage = fn;
+    } catch { setInterval(fn, ms); }
   }
 
   // ── animated numbers ──────────────────────────────────────────────────────
@@ -282,7 +307,8 @@
     el.chime.muted = true;
     el.chime.play().then(() => { el.chime.pause(); el.chime.currentTime = 0; el.chime.muted = false; }).catch(() => { el.chime.muted = false; });
     keepAwake();
+    initAudio();
     if (DEMO) startDemo();
-    else { poll(); setInterval(poll, Math.max(5, cfg.pollSeconds) * 1000); }
+    else { poll(); everyMs(Math.max(4, cfg.pollSeconds) * 1000, poll); }
   };
 })();

@@ -18,6 +18,6 @@ window.CAMPAIGN = {
   launchAt: "2026-11-12T19:00:00+03:00",
   endAt: "2026-12-07T19:00:00+03:00",
 
-  pollSeconds: 10,      // Kickstarter'ı kaç saniyede bir kontrol etsin
-  maxChimes: 5,         // aynı anda çok backer gelirse en fazla kaç kez çalsın
+  pollSeconds: 5,       // Kickstarter'ı kaç saniyede bir kontrol etsin
+  maxChimes: 8,         // tek kontrolde çok backer gelirse en fazla kaç kez çalsın
 };
